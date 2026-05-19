@@ -8,7 +8,7 @@
 body{
   margin:0;
   font-family:Arial;
-  background:#d9f0ff;
+  background:#ffffff;
   font-size:18px;
 }
 
@@ -18,17 +18,20 @@ body{
   background:#fff;
   padding:30px;
   border-radius:12px;
+  border:1px solid #ddd;
 }
 
 input, textarea{
   width:100%;
   padding:8px;
   margin:6px 0;
+  box-sizing:border-box;
 }
 
 button{
   padding:10px;
   margin:5px;
+  cursor:pointer;
 }
 
 .titleCard{
@@ -36,6 +39,11 @@ button{
   border:1px solid #ddd;
   margin:8px 0;
   cursor:pointer;
+  border-radius:8px;
+}
+
+.titleCard:hover{
+  background:#f5f5f5;
 }
 
 .current{
@@ -43,21 +51,32 @@ button{
   font-weight:bold;
   margin:60px 0 30px 0;
   text-align:center;
+  line-height:1.5;
 }
 
 .prev,.next{
   color:#999;
   font-size:14px;
   text-align:center;
+  line-height:1.5;
 }
 
 .note{
   font-size:13px;
   white-space:pre-wrap;
   color:#333;
+  line-height:1.6;
 }
 
-#app{display:none;}
+.label{
+  font-size:12px;
+  color:#666;
+  margin-top:12px;
+}
+
+#app{
+  display:none;
+}
 </style>
 </head>
 
@@ -70,15 +89,16 @@ button{
 ========================= -->
 <div id="setup">
 
-  <h2>Setup（ユーザーごとに設定）</h2>
+  <h2>Setup</h2>
 
-  <label>📥 NovelLibrary Spreadsheet ID</label>
-  <input id="novelId">
+  <div class="label">📥 NovelLibrary Spreadsheet ID</div>
+  <input id="novelId" placeholder="Spreadsheet ID">
 
-  <label>📤 ReviewDB Spreadsheet ID</label>
-  <input id="reviewId">
+  <div class="label">📤 ReviewDB Spreadsheet ID</div>
+  <input id="reviewId" placeholder="Spreadsheet ID">
 
   <button onclick="start()">START</button>
+
 </div>
 
 <!-- =========================
@@ -86,32 +106,39 @@ button{
 ========================= -->
 <div id="app">
 
+  <!-- INDEX -->
   <div id="indexView"></div>
 
-  <div id="readView" style="display:none">
+  <!-- READER -->
+  <div id="readView" style="display:none;">
 
     <div class="prev" id="prev"></div>
+
     <div class="current" id="current"></div>
+
     <div class="next" id="next"></div>
 
-    <label>Memo</label>
+    <div class="label">Memo</div>
     <textarea id="memo"></textarea>
 
-    <label>Your Answer</label>
+    <div class="label">Your Answer</div>
     <textarea id="answer"></textarea>
 
-    <label>Correct Answer</label>
+    <div class="label">Correct Answer</div>
     <div id="correct"></div>
 
-    <label>Note</label>
+    <div class="label">Note</div>
     <div class="note" id="note"></div>
 
-    <button onclick="back()">BACK</button>
-    <button onclick="check()">CHECK</button>
-    <button onclick="next()">NEXT</button>
-    <button onclick="goIndex()">SELECT</button>
+    <div style="margin-top:20px;">
+      <button onclick="back()">BACK</button>
+      <button onclick="check()">CHECK</button>
+      <button onclick="next()">NEXT</button>
+      <button onclick="goIndex()">SELECT</button>
+    </div>
 
   </div>
+
 </div>
 
 </div>
@@ -144,11 +171,14 @@ let state = {
    SESSION
 ========================= */
 function getSession(){
+
   let id = localStorage.getItem("sessionId");
+
   if(!id){
     id = "S_" + Date.now();
     localStorage.setItem("sessionId", id);
   }
+
   return id;
 }
 
@@ -161,7 +191,7 @@ function start(){
   const r = document.getElementById("reviewId").value.trim();
 
   if(!n || !r){
-    alert("両方入力してね");
+    alert("両方入力してください");
     return;
   }
 
@@ -178,7 +208,7 @@ function start(){
 }
 
 /* =========================
-   LOAD INDEX（ここだけApps Script使用）
+   LOAD INDEX
 ========================= */
 async function loadIndex(){
 
@@ -186,36 +216,39 @@ async function loadIndex(){
     `${API_URL}?sheet=NovelIndex&spreadsheetId=${config.novelId}`
   );
 
-  state.novels = (await res.json())
-    .slice(1)
-    .map(r => ({
-      id: r[0],
-      title: r[1]
-    }));
+  const json = await res.json();
+
+  state.novels = json.slice(1).map(r => ({
+    id: r[0],
+    title: r[1]
+  }));
 
   renderIndex();
 }
 
 /* =========================
-   INDEX
+   RENDER INDEX
 ========================= */
 function renderIndex(){
 
   let html = "<h2>Novel List</h2>";
 
-  state.novels.forEach(n=>{
+  state.novels.forEach(n => {
+
     html += `
-      <div class="titleCard" onclick="loadNovel('${n.id}')">
+      <div class="titleCard"
+           onclick="loadNovel('${n.id}')">
         ${n.title}
       </div>
     `;
+
   });
 
   document.getElementById("indexView").innerHTML = html;
 }
 
 /* =========================
-   LOAD NOVEL（ここだけApps Script使用）
+   LOAD NOVEL
 ========================= */
 async function loadNovel(id){
 
@@ -225,15 +258,15 @@ async function loadNovel(id){
     `${API_URL}?sheet=${id}&spreadsheetId=${config.novelId}`
   );
 
-  state.data = (await res.json())
-    .slice(1)
-    .map(r => ({
-      chapter: r[0],
-      sentenceId: r[1],
-      english: r[2],
-      correctJP: r[3],
-      note: r[4]
-    }));
+  const json = await res.json();
+
+  state.data = json.slice(1).map(r => ({
+    chapter: r[0],
+    sentenceId: r[1],
+    english: r[2],
+    correctJP: r[3],
+    note: r[4]
+  }));
 
   state.index = 0;
   state.selectedNovel = id;
@@ -245,62 +278,73 @@ async function loadNovel(id){
 }
 
 /* =========================
-   RENDER（ローカル）
+   RENDER
 ========================= */
 function render(){
 
   const d = state.data[state.index];
+
   if(!d) return;
 
   const sid = d.sentenceId;
 
-  document.getElementById("current").innerText = d.english;
+  document.getElementById("current").innerText =
+    d.english;
+
   document.getElementById("prev").innerText =
-    state.data[state.index-1]?.english || "";
+    state.data[state.index - 1]?.english || "";
 
   document.getElementById("next").innerText =
-    state.data[state.index+1]?.english || "";
+    state.data[state.index + 1]?.english || "";
 
   document.getElementById("correct").innerText = "";
   document.getElementById("note").innerText = "";
 
   document.getElementById("answer").value =
-    localStorage.getItem("ans_"+sid) || "";
+    localStorage.getItem("ans_" + sid) || "";
 
   document.getElementById("memo").value =
-    localStorage.getItem("memo_"+sid) || "";
+    localStorage.getItem("memo_" + sid) || "";
 
   speak(d.english);
 }
 
 /* =========================
-   TTS（完全ローカル）
+   SPEAK
 ========================= */
 function speak(text){
+
   speechSynthesis.cancel();
+
   const u = new SpeechSynthesisUtterance(text);
+
   u.lang = "en-US";
   u.rate = 0.9;
+
   speechSynthesis.speak(u);
 }
 
 /* =========================
-   SAVE（ローカル）
+   SAVE
 ========================= */
 function save(){
 
   const d = state.data[state.index];
   const sid = d.sentenceId;
 
-  localStorage.setItem("ans_"+sid,
-    document.getElementById("answer").value);
+  localStorage.setItem(
+    "ans_" + sid,
+    document.getElementById("answer").value
+  );
 
-  localStorage.setItem("memo_"+sid,
-    document.getElementById("memo").value);
+  localStorage.setItem(
+    "memo_" + sid,
+    document.getElementById("memo").value
+  );
 }
 
 /* =========================
-   CHECK（ここだけApps Script書き込み）
+   CHECK
 ========================= */
 async function check(){
 
@@ -319,16 +363,25 @@ async function check(){
   };
 
   state.log.push(payload);
-  localStorage.setItem("log", JSON.stringify(state.log));
 
-  document.getElementById("correct").innerText = d.correctJP;
-  document.getElementById("note").innerText = d.note;
+  localStorage.setItem(
+    "log",
+    JSON.stringify(state.log)
+  );
+
+  document.getElementById("correct").innerText =
+    d.correctJP;
+
+  document.getElementById("note").innerText =
+    d.note;
 
   await fetch(
     `${API_URL}?sheet=ReviewDB&spreadsheetId=${config.reviewId}`,
     {
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{
+        "Content-Type":"application/json"
+      },
       body: JSON.stringify(payload)
     }
   );
@@ -337,33 +390,46 @@ async function check(){
 }
 
 /* =========================
-   NAV（ローカル）
+   NEXT
 ========================= */
 function next(){
+
   save();
+
   if(state.index < state.data.length - 1){
     state.index++;
     render();
   }
 }
 
+/* =========================
+   BACK
+========================= */
 function back(){
+
   save();
+
   if(state.index > 0){
     state.index--;
     render();
   }
 }
 
+/* =========================
+   SELECT
+========================= */
 function goIndex(){
+
   save();
+
   document.getElementById("readView").style.display = "none";
   document.getElementById("indexView").style.display = "block";
+
   renderIndex();
 }
 
 /* =========================
-   AUTO RESTORE
+   AUTO LOAD
 ========================= */
 (function init(){
 
@@ -371,6 +437,7 @@ function goIndex(){
   const r = localStorage.getItem("reviewId");
 
   if(n && r){
+
     config.novelId = n;
     config.reviewId = r;
 
@@ -386,3 +453,4 @@ function goIndex(){
 
 </body>
 </html>
+
