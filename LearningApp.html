@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>LearningApp</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#d9f0ff;
+  font-size:18px;
+}
+
+.card{
+  max-width:850px;
+  margin:30px auto;
+  background:#fff;
+  padding:30px;
+  border-radius:12px;
+}
+
+input, textarea{
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+}
+
+button{
+  padding:10px;
+  margin:5px;
+}
+
+.titleCard{
+  padding:12px;
+  border:1px solid #ddd;
+  margin:8px 0;
+  cursor:pointer;
+}
+
+.current{
+  font-size:26px;
+  font-weight:bold;
+  margin:60px 0 30px 0;
+  text-align:center;
+}
+
+.prev,.next{
+  color:#999;
+  font-size:14px;
+  text-align:center;
+}
+
+.note{
+  font-size:13px;
+  white-space:pre-wrap;
+  color:#333;
+}
+
+#app{display:none;}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<!-- =========================
+     SETUP
+========================= -->
+<div id="setup">
+
+  <h2>Setup（ユーザーごとに設定）</h2>
+
+  <label>📥 NovelLibrary Spreadsheet ID</label>
+  <input id="novelId">
+
+  <label>📤 ReviewDB Spreadsheet ID</label>
+  <input id="reviewId">
+
+  <button onclick="start()">START</button>
+</div>
+
+<!-- =========================
+     APP
+========================= -->
+<div id="app">
+
+  <div id="indexView"></div>
+
+  <div id="readView" style="display:none">
+
+    <div class="prev" id="prev"></div>
+    <div class="current" id="current"></div>
+    <div class="next" id="next"></div>
+
+    <label>Memo</label>
+    <textarea id="memo"></textarea>
+
+    <label>Your Answer</label>
+    <textarea id="answer"></textarea>
+
+    <label>Correct Answer</label>
+    <div id="correct"></div>
+
+    <label>Note</label>
+    <div class="note" id="note"></div>
+
+    <button onclick="back()">BACK</button>
+    <button onclick="check()">CHECK</button>
+    <button onclick="next()">NEXT</button>
+    <button onclick="goIndex()">SELECT</button>
+
+  </div>
+</div>
+
+</div>
+
+<script>
+
+/* =========================
+   CONFIG
+========================= */
+const API_URL = "ここにApps Script URL";
+
+let config = {
+  novelId: "",
+  reviewId: ""
+};
+
+/* =========================
+   STATE
+========================= */
+let state = {
+  novels: [],
+  data: [],
+  index: 0,
+  selectedNovel: null,
+  sessionId: getSession(),
+  log: JSON.parse(localStorage.getItem("log") || "[]")
+};
+
+/* =========================
+   SESSION
+========================= */
+function getSession(){
+  let id = localStorage.getItem("sessionId");
+  if(!id){
+    id = "S_" + Date.now();
+    localStorage.setItem("sessionId", id);
+  }
+  return id;
+}
+
+/* =========================
+   START
+========================= */
+function start(){
+
+  const n = document.getElementById("novelId").value.trim();
+  const r = document.getElementById("reviewId").value.trim();
+
+  if(!n || !r){
+    alert("両方入力してね");
+    return;
+  }
+
+  config.novelId = n;
+  config.reviewId = r;
+
+  localStorage.setItem("novelId", n);
+  localStorage.setItem("reviewId", r);
+
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  loadIndex();
+}
+
+/* =========================
+   LOAD INDEX（ここだけApps Script使用）
+========================= */
+async function loadIndex(){
+
+  const res = await fetch(
+    `${API_URL}?sheet=NovelIndex&spreadsheetId=${config.novelId}`
+  );
+
+  state.novels = (await res.json())
+    .slice(1)
+    .map(r => ({
+      id: r[0],
+      title: r[1]
+    }));
+
+  renderIndex();
+}
+
+/* =========================
+   INDEX
+========================= */
+function renderIndex(){
+
+  let html = "<h2>Novel List</h2>";
+
+  state.novels.forEach(n=>{
+    html += `
+      <div class="titleCard" onclick="loadNovel('${n.id}')">
+        ${n.title}
+      </div>
+    `;
+  });
+
+  document.getElementById("indexView").innerHTML = html;
+}
+
+/* =========================
+   LOAD NOVEL（ここだけApps Script使用）
+========================= */
+async function loadNovel(id){
+
+  document.getElementById("indexView").innerHTML = "Loading...";
+
+  const res = await fetch(
+    `${API_URL}?sheet=${id}&spreadsheetId=${config.novelId}`
+  );
+
+  state.data = (await res.json())
+    .slice(1)
+    .map(r => ({
+      chapter: r[0],
+      sentenceId: r[1],
+      english: r[2],
+      correctJP: r[3],
+      note: r[4]
+    }));
+
+  state.index = 0;
+  state.selectedNovel = id;
+
+  document.getElementById("indexView").style.display = "none";
+  document.getElementById("readView").style.display = "block";
+
+  render();
+}
+
+/* =========================
+   RENDER（ローカル）
+========================= */
+function render(){
+
+  const d = state.data[state.index];
+  if(!d) return;
+
+  const sid = d.sentenceId;
+
+  document.getElementById("current").innerText = d.english;
+  document.getElementById("prev").innerText =
+    state.data[state.index-1]?.english || "";
+
+  document.getElementById("next").innerText =
+    state.data[state.index+1]?.english || "";
+
+  document.getElementById("correct").innerText = "";
+  document.getElementById("note").innerText = "";
+
+  document.getElementById("answer").value =
+    localStorage.getItem("ans_"+sid) || "";
+
+  document.getElementById("memo").value =
+    localStorage.getItem("memo_"+sid) || "";
+
+  speak(d.english);
+}
+
+/* =========================
+   TTS（完全ローカル）
+========================= */
+function speak(text){
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+/* =========================
+   SAVE（ローカル）
+========================= */
+function save(){
+
+  const d = state.data[state.index];
+  const sid = d.sentenceId;
+
+  localStorage.setItem("ans_"+sid,
+    document.getElementById("answer").value);
+
+  localStorage.setItem("memo_"+sid,
+    document.getElementById("memo").value);
+}
+
+/* =========================
+   CHECK（ここだけApps Script書き込み）
+========================= */
+async function check(){
+
+  const d = state.data[state.index];
+  const sid = d.sentenceId;
+
+  const payload = {
+    sessionId: state.sessionId,
+    novelId: state.selectedNovel,
+    sentenceId: sid,
+    chapter: d.chapter,
+    english: d.english,
+    answer: document.getElementById("answer").value,
+    memo: document.getElementById("memo").value,
+    time: new Date().toISOString()
+  };
+
+  state.log.push(payload);
+  localStorage.setItem("log", JSON.stringify(state.log));
+
+  document.getElementById("correct").innerText = d.correctJP;
+  document.getElementById("note").innerText = d.note;
+
+  await fetch(
+    `${API_URL}?sheet=ReviewDB&spreadsheetId=${config.reviewId}`,
+    {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    }
+  );
+
+  save();
+}
+
+/* =========================
+   NAV（ローカル）
+========================= */
+function next(){
+  save();
+  if(state.index < state.data.length - 1){
+    state.index++;
+    render();
+  }
+}
+
+function back(){
+  save();
+  if(state.index > 0){
+    state.index--;
+    render();
+  }
+}
+
+function goIndex(){
+  save();
+  document.getElementById("readView").style.display = "none";
+  document.getElementById("indexView").style.display = "block";
+  renderIndex();
+}
+
+/* =========================
+   AUTO RESTORE
+========================= */
+(function init(){
+
+  const n = localStorage.getItem("novelId");
+  const r = localStorage.getItem("reviewId");
+
+  if(n && r){
+    config.novelId = n;
+    config.reviewId = r;
+
+    document.getElementById("setup").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    loadIndex();
+  }
+
+})();
+
+</script>
+
+</body>
+</html>
