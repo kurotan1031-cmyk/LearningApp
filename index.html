@@ -5,6 +5,7 @@
 <title>LearningApp</title>
 
 <style>
+
 body{
   margin:0;
   font-family:Arial;
@@ -18,20 +19,6 @@ body{
   background:#fff;
   padding:30px;
   border-radius:12px;
-  border:1px solid #ddd;
-}
-
-input, textarea{
-  width:100%;
-  padding:8px;
-  margin:6px 0;
-  box-sizing:border-box;
-}
-
-button{
-  padding:10px;
-  margin:5px;
-  cursor:pointer;
 }
 
 .titleCard{
@@ -39,17 +26,12 @@ button{
   border:1px solid #ddd;
   margin:8px 0;
   cursor:pointer;
-  border-radius:8px;
-}
-
-.titleCard:hover{
-  background:#f5f5f5;
 }
 
 .current{
   font-size:26px;
   font-weight:bold;
-  margin:60px 0 30px 0;
+  margin:80px 0 40px 0;
   text-align:center;
   line-height:1.5;
 }
@@ -58,25 +40,34 @@ button{
   color:#999;
   font-size:14px;
   text-align:center;
-  line-height:1.5;
+}
+
+textarea{
+  width:100%;
+  height:60px;
+}
+
+button{
+  padding:10px;
+  margin:5px;
 }
 
 .note{
   font-size:13px;
   white-space:pre-wrap;
   color:#333;
-  line-height:1.6;
 }
 
 .label{
   font-size:12px;
   color:#666;
-  margin-top:12px;
+  margin-top:10px;
 }
 
-#app{
+#readView{
   display:none;
 }
+
 </style>
 </head>
 
@@ -84,33 +75,31 @@ button{
 
 <div class="card">
 
-<!-- =========================
-     SETUP
-========================= -->
-<div id="setup">
+  <div id="setupView">
 
-  <h2>Setup</h2>
+    <h2>Setup</h2>
 
-  <div class="label">📥 NovelLibrary Spreadsheet ID</div>
-  <input id="novelId" placeholder="Spreadsheet ID">
+    <div class="label">
+      NovelLibrary Spreadsheet ID
+    </div>
 
-  <div class="label">📤 ReviewDB Spreadsheet ID</div>
-  <input id="reviewId" placeholder="Spreadsheet ID">
+    <textarea id="novelId"></textarea>
 
-  <button onclick="start()">START</button>
+    <div class="label">
+      ReviewDB Spreadsheet ID
+    </div>
 
-</div>
+    <textarea id="reviewId"></textarea>
 
-<!-- =========================
-     APP
-========================= -->
-<div id="app">
+    <button onclick="startApp()">
+      START
+    </button>
 
-  <!-- INDEX -->
+  </div>
+
   <div id="indexView"></div>
 
-  <!-- READER -->
-  <div id="readView" style="display:none;">
+  <div id="readView">
 
     <div class="prev" id="prev"></div>
 
@@ -130,53 +119,73 @@ button{
     <div class="label">Note</div>
     <div class="note" id="note"></div>
 
-    <div style="margin-top:20px;">
-      <button onclick="back()">BACK</button>
-      <button onclick="check()">CHECK</button>
-      <button onclick="next()">NEXT</button>
-      <button onclick="goIndex()">SELECT</button>
-    </div>
+    <button onclick="backSentence()">
+      BACK
+    </button>
+
+    <button onclick="checkAnswer()">
+      CHECK
+    </button>
+
+    <button onclick="nextSentence()">
+      NEXT
+    </button>
+
+    <button onclick="goIndex()">
+      SELECT
+    </button>
 
   </div>
-
-</div>
 
 </div>
 
 <script>
 
 /* =========================
-   CONFIG
+   API
 ========================= */
-const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
-let config = {
-  novelId: "",
-  reviewId: ""
-};
+const API_URL =
+"ここにApps Script WebアプリURL";
 
 /* =========================
    STATE
 ========================= */
+
+let config = {
+
+  novelId: "",
+  reviewId: ""
+
+};
+
 let state = {
+
   novels: [],
   data: [],
   index: 0,
-  selectedNovel: null,
-  sessionId: getSession(),
-  log: JSON.parse(localStorage.getItem("log") || "[]")
+  selectedNovel: "",
+  sessionId: getSession()
+
 };
 
 /* =========================
    SESSION
 ========================= */
+
 function getSession(){
 
-  let id = localStorage.getItem("sessionId");
+  let id =
+    localStorage.getItem("sessionId");
 
   if(!id){
+
     id = "S_" + Date.now();
-    localStorage.setItem("sessionId", id);
+
+    localStorage.setItem(
+      "sessionId",
+      id
+    );
   }
 
   return id;
@@ -185,43 +194,41 @@ function getSession(){
 /* =========================
    START
 ========================= */
-function start(){
 
-  const n = document.getElementById("novelId").value.trim();
-  const r = document.getElementById("reviewId").value.trim();
+async function startApp(){
 
-  if(!n || !r){
-    alert("両方入力してください");
-    return;
-  }
+  config.novelId =
+    document.getElementById(
+      "novelId"
+    ).value.trim();
 
-  config.novelId = n;
-  config.reviewId = r;
+  config.reviewId =
+    document.getElementById(
+      "reviewId"
+    ).value.trim();
 
-  localStorage.setItem("novelId", n);
-  localStorage.setItem("reviewId", r);
+  await loadIndex();
 
-  document.getElementById("setup").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  loadIndex();
+  document.getElementById(
+    "setupView"
+  ).style.display = "none";
 }
 
 /* =========================
    LOAD INDEX
 ========================= */
+
 async function loadIndex(){
 
   const res = await fetch(
-    `${API_URL}?sheet=NovelIndex&spreadsheetId=${config.novelId}`
+
+    `${API_URL}?mode=list&spreadsheetId=${config.novelId}`
+
   );
 
   const json = await res.json();
 
-  state.novels = json.slice(1).map(r => ({
-    id: r[0],
-    title: r[1]
-  }));
+  state.novels = json;
 
   renderIndex();
 }
@@ -229,50 +236,57 @@ async function loadIndex(){
 /* =========================
    RENDER INDEX
 ========================= */
+
 function renderIndex(){
 
   let html = "<h2>Novel List</h2>";
 
-  state.novels.forEach(n => {
+  state.novels.forEach(n=>{
 
     html += `
-      <div class="titleCard"
-           onclick="loadNovel('${n.id}')">
+
+      <div
+        class="titleCard"
+        onclick="loadNovel('${n.title}')"
+      >
         ${n.title}
       </div>
-    `;
 
+    `;
   });
 
-  document.getElementById("indexView").innerHTML = html;
+  document.getElementById(
+    "indexView"
+  ).innerHTML = html;
 }
 
 /* =========================
    LOAD NOVEL
 ========================= */
-async function loadNovel(id){
 
-  document.getElementById("indexView").innerHTML = "Loading...";
+async function loadNovel(title){
 
   const res = await fetch(
-    `${API_URL}?sheet=${id}&spreadsheetId=${config.novelId}`
+
+    `${API_URL}?sheet=${encodeURIComponent(title)}&spreadsheetId=${config.novelId}`
+
   );
 
   const json = await res.json();
 
-  state.data = json.slice(1).map(r => ({
-    chapter: r[0],
-    sentenceId: r[1],
-    english: r[2],
-    correctJP: r[3],
-    note: r[4]
-  }));
+  state.data = json;
 
   state.index = 0;
-  state.selectedNovel = id;
 
-  document.getElementById("indexView").style.display = "none";
-  document.getElementById("readView").style.display = "block";
+  state.selectedNovel = title;
+
+  document.getElementById(
+    "indexView"
+  ).style.display = "none";
+
+  document.getElementById(
+    "readView"
+  ).style.display = "block";
 
   render();
 }
@@ -280,46 +294,73 @@ async function loadNovel(id){
 /* =========================
    RENDER
 ========================= */
+
 function render(){
 
-  const d = state.data[state.index];
+  const d =
+    state.data[state.index];
 
   if(!d) return;
 
-  const sid = d.sentenceId;
+  document.getElementById(
+    "current"
+  ).innerText = d.english;
 
-  document.getElementById("current").innerText =
-    d.english;
+  document.getElementById(
+    "prev"
+  ).innerText =
 
-  document.getElementById("prev").innerText =
-    state.data[state.index - 1]?.english || "";
+    state.data[state.index-1]
+    ?.english || "";
 
-  document.getElementById("next").innerText =
-    state.data[state.index + 1]?.english || "";
+  document.getElementById(
+    "next"
+  ).innerText =
 
-  document.getElementById("correct").innerText = "";
-  document.getElementById("note").innerText = "";
+    state.data[state.index+1]
+    ?.english || "";
 
-  document.getElementById("answer").value =
-    localStorage.getItem("ans_" + sid) || "";
+  document.getElementById(
+    "correct"
+  ).innerText = "";
 
-  document.getElementById("memo").value =
-    localStorage.getItem("memo_" + sid) || "";
+  document.getElementById(
+    "note"
+  ).innerText = "";
+
+  document.getElementById(
+    "answer"
+  ).value =
+
+    localStorage.getItem(
+      "ans_" + d.sentenceId
+    ) || "";
+
+  document.getElementById(
+    "memo"
+  ).value =
+
+    localStorage.getItem(
+      "memo_" + d.sentenceId
+    ) || "";
 
   speak(d.english);
 }
 
 /* =========================
-   SPEAK
+   TTS
 ========================= */
+
 function speak(text){
 
-  speechSynthesis.cancel();
-
-  const u = new SpeechSynthesisUtterance(text);
+  const u =
+    new SpeechSynthesisUtterance(text);
 
   u.lang = "en-US";
+
   u.rate = 0.9;
+
+  speechSynthesis.cancel();
 
   speechSynthesis.speak(u);
 }
@@ -327,63 +368,99 @@ function speak(text){
 /* =========================
    SAVE
 ========================= */
+
 function save(){
 
-  const d = state.data[state.index];
-  const sid = d.sentenceId;
+  const d =
+    state.data[state.index];
 
   localStorage.setItem(
-    "ans_" + sid,
-    document.getElementById("answer").value
+
+    "ans_" + d.sentenceId,
+
+    document.getElementById(
+      "answer"
+    ).value
+
   );
 
   localStorage.setItem(
-    "memo_" + sid,
-    document.getElementById("memo").value
+
+    "memo_" + d.sentenceId,
+
+    document.getElementById(
+      "memo"
+    ).value
+
   );
 }
 
 /* =========================
    CHECK
 ========================= */
-async function check(){
 
-  const d = state.data[state.index];
-  const sid = d.sentenceId;
+async function checkAnswer(){
 
-  const payload = {
-    sessionId: state.sessionId,
-    novelId: state.selectedNovel,
-    sentenceId: sid,
-    chapter: d.chapter,
-    english: d.english,
-    answer: document.getElementById("answer").value,
-    memo: document.getElementById("memo").value,
-    time: new Date().toISOString()
-  };
+  const d =
+    state.data[state.index];
 
-  state.log.push(payload);
+  const answer =
+    document.getElementById(
+      "answer"
+    ).value;
 
-  localStorage.setItem(
-    "log",
-    JSON.stringify(state.log)
-  );
+  const memo =
+    document.getElementById(
+      "memo"
+    ).value;
 
-  document.getElementById("correct").innerText =
-    d.correctJP;
+  document.getElementById(
+    "correct"
+  ).innerText = d.correctJP;
 
-  document.getElementById("note").innerText =
-    d.note;
+  document.getElementById(
+    "note"
+  ).innerText = d.note;
 
   await fetch(
-    `${API_URL}?sheet=ReviewDB&spreadsheetId=${config.reviewId}`,
+
+    `${API_URL}?spreadsheetId=${config.reviewId}`,
+
     {
+
       method:"POST",
+
       headers:{
         "Content-Type":"application/json"
       },
-      body: JSON.stringify(payload)
+
+      body: JSON.stringify({
+
+        sessionId:
+          state.sessionId,
+
+        novelTitle:
+          state.selectedNovel,
+
+        sentenceId:
+          d.sentenceId,
+
+        chapter:
+          d.chapter,
+
+        english:
+          d.english,
+
+        answer,
+        memo,
+
+        time:
+          new Date().toISOString()
+
+      })
+
     }
+
   );
 
   save();
@@ -392,12 +469,18 @@ async function check(){
 /* =========================
    NEXT
 ========================= */
-function next(){
+
+function nextSentence(){
 
   save();
 
-  if(state.index < state.data.length - 1){
+  if(
+    state.index <
+    state.data.length - 1
+  ){
+
     state.index++;
+
     render();
   }
 }
@@ -405,12 +488,15 @@ function next(){
 /* =========================
    BACK
 ========================= */
-function back(){
+
+function backSentence(){
 
   save();
 
   if(state.index > 0){
+
     state.index--;
+
     render();
   }
 }
@@ -418,39 +504,21 @@ function back(){
 /* =========================
    SELECT
 ========================= */
+
 function goIndex(){
 
   save();
 
-  document.getElementById("readView").style.display = "none";
-  document.getElementById("indexView").style.display = "block";
+  document.getElementById(
+    "readView"
+  ).style.display = "none";
 
-  renderIndex();
+  document.getElementById(
+    "indexView"
+  ).style.display = "block";
 }
-
-/* =========================
-   AUTO LOAD
-========================= */
-(function init(){
-
-  const n = localStorage.getItem("novelId");
-  const r = localStorage.getItem("reviewId");
-
-  if(n && r){
-
-    config.novelId = n;
-    config.reviewId = r;
-
-    document.getElementById("setup").style.display = "none";
-    document.getElementById("app").style.display = "block";
-
-    loadIndex();
-  }
-
-})();
 
 </script>
 
 </body>
 </html>
-
