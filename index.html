@@ -64,6 +64,10 @@ button{
   margin-top:10px;
 }
 
+#indexView{
+  display:none;
+}
+
 #readView{
   display:none;
 }
@@ -75,6 +79,9 @@ button{
 
 <div class="card">
 
+  <!-- =========================
+       SETUP
+  ========================== -->
   <div id="setupView">
 
     <h2>Setup</h2>
@@ -97,8 +104,14 @@ button{
 
   </div>
 
+  <!-- =========================
+       INDEX
+  ========================== -->
   <div id="indexView"></div>
 
+  <!-- =========================
+       READER
+  ========================== -->
   <div id="readView">
 
     <div class="prev" id="prev"></div>
@@ -142,14 +155,14 @@ button{
 <script>
 
 /* =========================
-   
+   API
 ========================= */
 
 const API_URL =
 "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
 /* =========================
-   STATE
+   CONFIG
 ========================= */
 
 let config = {
@@ -158,6 +171,10 @@ let config = {
   reviewId: ""
 
 };
+
+/* =========================
+   STATE
+========================= */
 
 let state = {
 
@@ -212,6 +229,10 @@ async function startApp(){
   document.getElementById(
     "setupView"
   ).style.display = "none";
+
+  document.getElementById(
+    "indexView"
+  ).style.display = "block";
 }
 
 /* =========================
