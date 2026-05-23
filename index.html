@@ -11,7 +11,6 @@ body{
   font-family:Arial;
   margin:0;
   background:#f4f6f8;
-  color:#333;
 }
 
 .wrap{
@@ -26,11 +25,6 @@ body{
   border-radius:12px;
   margin-bottom:12px;
   box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-h1{
-  font-size:20px;
-  margin:0 0 10px 0;
 }
 
 .status{
@@ -55,7 +49,6 @@ textarea{
   height:70px;
   margin-top:8px;
   padding:10px;
-  font-size:14px;
 }
 
 button{
@@ -66,18 +59,15 @@ button{
   margin-top:10px;
 }
 
-.primary{background:#4CAF50;color:white}
-.nextBtn{background:#2196F3;color:white}
+.primary{background:#4CAF50;color:#fff}
+.nextBtn{background:#2196F3;color:#fff}
 
-/* PC */
-@media (min-width: 768px){
+@media (min-width:768px){
   .current{font-size:28px}
   textarea{height:90px}
-  .prev,.nextText{font-size:16px}
 }
 
-/* SP */
-@media (max-width: 767px){
+@media (max-width:767px){
   button{width:100%}
 }
 </style>
@@ -88,11 +78,10 @@ button{
 
 <div class="wrap">
 
-<!-- Googleログイン（ここだけで完結） -->
+<!-- LOGIN -->
 <div class="card">
 
-  <h1>英語学習アプリ</h1>
-  <div class="status">Googleアカウントでログインしてください</div>
+  <div class="status">Googleログイン</div>
 
   <div id="g_id_onload"
        data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
@@ -103,22 +92,19 @@ button{
 
 </div>
 
-<!-- 初期設定 -->
+<!-- SETUP -->
 <div id="setup" class="card" style="display:none">
 
-  <div class="status">初回のみ設定</div>
+  <div class="status">初回 or 未設定</div>
 
-  <label>英語教材スプレッドシートID</label>
-  <textarea id="novelId"></textarea>
+  <textarea id="novelId" placeholder="Novel Spreadsheet ID"></textarea>
+  <textarea id="reviewId" placeholder="Review Spreadsheet ID"></textarea>
 
-  <label>復習データ保存スプレッドシートID</label>
-  <textarea id="reviewId"></textarea>
-
-  <button class="primary" onclick="saveSetup()">設定して開始</button>
+  <button class="primary" onclick="saveSetup()">開始</button>
 
 </div>
 
-<!-- 本体 -->
+<!-- APP -->
 <div id="app" style="display:none">
 
   <div class="card">
@@ -137,13 +123,13 @@ button{
   </div>
 
   <div class="card">
-    <div class="status">入力</div>
 
-    <textarea id="answer" placeholder="英語の意味"></textarea>
-    <textarea id="memo" placeholder="メモ"></textarea>
+    <textarea id="answer"></textarea>
+    <textarea id="memo"></textarea>
 
-    <button class="primary" onclick="save()">保存</button>
-    <button class="nextBtn" onclick="next()">次へ</button>
+    <button class="primary" onclick="save()">SAVE</button>
+    <button class="nextBtn" onclick="next()">NEXT</button>
+
   </div>
 
 </div>
@@ -155,48 +141,53 @@ button{
 const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
 let userId = "";
-let config = {};
+let config = {
+  novelSpreadsheetId:"",
+  reviewSpreadsheetId:""
+};
 let data = [];
 let i = 0;
 
-/* Googleログイン成功 */
+/* LOGIN */
 function handleCredentialResponse(res){
 
-  try{
-    const payload = JSON.parse(atob(res.credential.split('.')[1]));
-    userId = payload.email;
+  const payload = JSON.parse(atob(res.credential.split('.')[1]));
+  userId = payload.email;
 
-    restore();
-
-  }catch(e){
-    console.error("login error", e);
-  }
+  restore();
 }
 
-/* restore */
+/* RESTORE（Apps Script完全準拠） */
 async function restore(){
 
-  const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId||""}`);
+  const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId}`);
   const j = await r.json();
 
-  if(j.first){
+  if(j.first || !j.novelId || !j.reviewSpreadsheetId){
+
     document.getElementById("setup").style.display = "block";
+    document.getElementById("app").style.display = "none";
     return;
   }
+
+  config.novelSpreadsheetId = j.novelId;
+  config.reviewSpreadsheetId = j.reviewSpreadsheetId;
 
   loadNovel(j.novelId, j.currentIndex || 0);
 }
 
-/* setup */
+/* SETUP SAVE */
 function saveSetup(){
 
   config.novelSpreadsheetId = document.getElementById("novelId").value.trim();
   config.reviewSpreadsheetId = document.getElementById("reviewId").value.trim();
 
   document.getElementById("setup").style.display = "none";
+
+  restore();
 }
 
-/* load */
+/* LOAD */
 async function loadNovel(sheet,start){
 
   const r = await fetch(`${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
@@ -207,12 +198,10 @@ async function loadNovel(sheet,start){
   render();
 }
 
-/* render */
+/* RENDER */
 function render(){
 
-  if(!data[i]) return;
-
-  document.getElementById("current").innerText = data[i].english;
+  document.getElementById("current").innerText = data[i]?.english || "";
 
   document.getElementById("prev").innerText =
     (data[i-1]?.english || "") + "\n" + (data[i-2]?.english || "");
@@ -221,7 +210,7 @@ function render(){
     (data[i+1]?.english || "") + "\n" + (data[i+2]?.english || "");
 }
 
-/* save */
+/* SAVE */
 async function save(){
 
   const d = data[i];
@@ -235,18 +224,17 @@ async function save(){
       sentenceId:i,
       chapter:d.chapter,
       english:d.english,
-      answer:document.getElementById("answer").value,
-      memo:document.getElementById("memo").value,
+      answer:answer.value,
+      memo:memo.value,
       time:new Date().toISOString(),
       currentIndex:i,
-      novelSpreadsheetId:config.novelSpreadsheetId,
       reviewSpreadsheetId:config.reviewSpreadsheetId
     })
   });
 
 }
 
-/* next */
+/* NEXT */
 function next(){
   if(i < data.length - 1){
     i++;
