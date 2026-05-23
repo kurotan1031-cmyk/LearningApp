@@ -14,14 +14,13 @@ body{font-family:Arial;margin:0}
 textarea{width:100%;height:70px;margin-top:10px}
 button{margin:5px}
 </style>
-
 </head>
 
 <body>
 
 <div class="wrap">
 
-<!-- Googleログイン -->
+<!-- ログインUI -->
 <div id="g_id_onload"
      data-client_id="YOUR_CLIENT_ID"
      data-callback="handleCredentialResponse">
@@ -29,13 +28,15 @@ button{margin:5px}
 
 <div class="g_id_signin"></div>
 
+<!-- 初回設定 -->
 <div id="setup" style="display:none">
 <h3>初回設定</h3>
-<textarea id="novelId"></textarea>
-<textarea id="reviewId"></textarea>
+<textarea id="novelId" placeholder="Novel Spreadsheet ID"></textarea>
+<textarea id="reviewId" placeholder="ReviewDB Spreadsheet ID"></textarea>
 <button onclick="saveSetup()">保存</button>
 </div>
 
+<!-- アプリ -->
 <div id="app" style="display:none">
 
 <div id="prev"></div>
@@ -87,11 +88,11 @@ async function restore(){
     loadNovel(j.novelId, j.currentIndex || 0);
 
   }catch(e){
-    console.error("restore error", e);
+    console.error(e);
   }
 }
 
-/* setup */
+/* 初回設定保存 */
 function saveSetup(){
 
   config.novelSpreadsheetId = document.getElementById("novelId").value.trim();
@@ -100,7 +101,7 @@ function saveSetup(){
   document.getElementById("setup").style.display = "none";
 }
 
-/* load */
+/* ノベル取得 */
 async function loadNovel(sheet,start){
 
   try{
@@ -108,15 +109,16 @@ async function loadNovel(sheet,start){
     data = await r.json();
 
     i = start;
+
     document.getElementById("app").style.display = "block";
     render();
 
   }catch(e){
-    console.error("load error", e);
+    console.error(e);
   }
 }
 
-/* render */
+/* 表示 */
 function render(){
 
   if(!data[i]) return;
@@ -130,7 +132,7 @@ function render(){
     (data[i+1]?.english || "") + "\n" + (data[i+2]?.english || "");
 }
 
-/* save */
+/* 保存 */
 async function save(){
 
   const d = data[i];
@@ -155,7 +157,7 @@ async function save(){
 
 }
 
-/* next */
+/* NEXT */
 function next(){
   if(i < data.length - 1){
     i++;
