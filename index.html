@@ -14,13 +14,14 @@ body{font-family:Arial;margin:0}
 textarea{width:100%;height:70px;margin-top:10px}
 button{margin:5px}
 </style>
+
 </head>
 
 <body>
 
 <div class="wrap">
 
-<!-- ログインUI -->
+<!-- Googleログインボタン -->
 <div id="g_id_onload"
      data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
      data-callback="handleCredentialResponse">
@@ -36,7 +37,7 @@ button{margin:5px}
 <button onclick="saveSetup()">保存</button>
 </div>
 
-<!-- アプリ -->
+<!-- アプリ本体 -->
 <div id="app" style="display:none">
 
 <div id="prev"></div>
@@ -65,13 +66,32 @@ let i = 0;
 /* Googleログイン成功 */
 function handleCredentialResponse(res){
 
-  const payload = JSON.parse(atob(res.credential.split('.')[1]));
-  userId = payload.email;
+  try{
+    const payload = JSON.parse(atob(res.credential.split('.')[1]));
+    userId = payload.email;
 
-  console.log("LOGIN OK:", userId);
+    console.log("LOGIN OK:", userId);
 
-  restore();
+    restore();
+
+  }catch(e){
+    console.error("login error", e);
+  }
 }
+
+/* 初期化（重要：これが今回の本体） */
+window.onload = () => {
+
+  google.accounts.id.initialize({
+    client_id: "YOUR_CLIENT_ID",
+    callback: handleCredentialResponse
+  });
+
+  google.accounts.id.renderButton(
+    document.querySelector(".g_id_signin"),
+    { theme: "outline", size: "large" }
+  );
+};
 
 /* restore */
 async function restore(){
@@ -101,7 +121,7 @@ function saveSetup(){
   document.getElementById("setup").style.display = "none";
 }
 
-/* ノベル取得 */
+/* ノベルロード */
 async function loadNovel(sheet,start){
 
   try{
@@ -157,7 +177,7 @@ async function save(){
 
 }
 
-/* NEXT */
+/* next */
 function next(){
   if(i < data.length - 1){
     i++;
