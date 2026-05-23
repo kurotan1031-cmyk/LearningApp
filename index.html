@@ -6,85 +6,57 @@
 
 <style>
 
-/* =========================
-   BASE
-========================= */
-
 body{
   margin:0;
   font-family:Arial;
-  background:#ffffff;
-  font-size:16px;
+  background:#fff;
   color:#111;
 }
 
 .card{
-  max-width:900px;
+  max-width:720px;
   margin:20px auto;
   padding:20px;
 }
 
-/* =========================
-   INDEX / SETUP
-========================= */
-
 .titleCard{
-  padding:10px;
+  padding:12px;
   border:1px solid #ddd;
-  margin:6px 0;
+  margin:8px 0;
   cursor:pointer;
 }
 
-/* =========================
-   TEXT AREAS
-========================= */
-
-textarea{
-  width:100%;
-  height:60px;
+.meta{
+  font-size:13px;
+  color:#666;
+  margin-bottom:20px;
 }
 
-/* =========================
-   BUTTONS
-========================= */
-
-button{
-  padding:8px 12px;
-  margin:5px 5px 5px 0;
-}
-
-/* =========================
-   TEXT BLOCKS
-========================= */
-
-.prev, .next{
+.prev,
+.next{
   font-size:16px;
   color:#777;
-  margin:8px 0;
   line-height:1.5;
+  margin:8px 0;
+  white-space:pre-wrap;
 }
 
 .current{
   font-size:22px;
-  font-weight:normal;
   color:#111;
-  margin:12px 0;
   line-height:1.6;
+  margin:14px 0;
 }
 
-/* =========================
-   MEMO AREA
-========================= */
-
-.note{
-  font-size:13px;
-  white-space:pre-wrap;
-  color:#444;
+textarea{
+  width:100%;
+  min-height:70px;
 }
 
-/* =========================
-   LABEL
-========================= */
+button{
+  padding:10px;
+  margin:5px 5px 5px 0;
+}
 
 .label{
   font-size:12px;
@@ -92,41 +64,21 @@ button{
   margin-top:10px;
 }
 
-/* =========================
-   PC OPTIMIZATION
-========================= */
-
-@media (min-width: 768px){
-
-  body{
-    font-size:16px;
-  }
-
-  .card{
-    max-width:720px;   /* ← 余白対策 */
-  }
-
-  .current{
-    font-size:22px;
-  }
-
-  .prev, .next{
-    font-size:16px;
-  }
-
-  textarea{
-    height:70px;
-  }
+#correct{
+  color:#444;
+  white-space:pre-wrap;
+  line-height:1.6;
 }
 
-/* =========================
-   MOBILE
-========================= */
+.note{
+  white-space:pre-wrap;
+  color:#444;
+  line-height:1.5;
+}
 
-@media (max-width: 767px){
+@media (max-width:767px){
 
   .card{
-    max-width:100%;
     padding:16px;
   }
 
@@ -134,7 +86,8 @@ button{
     font-size:20px;
   }
 
-  .prev, .next{
+  .prev,
+  .next{
     font-size:14px;
   }
 }
@@ -146,92 +99,166 @@ button{
 
 <div class="card">
 
-  <!-- SETUP -->
-  <div id="setupView">
-    <h2>Setup</h2>
+<div id="setupView">
 
-    <div class="label">NovelLibrary Spreadsheet ID</div>
-    <textarea id="novelId"></textarea>
+<h2>Setup</h2>
 
-    <div class="label">ReviewDB Spreadsheet ID</div>
-    <textarea id="reviewId"></textarea>
+<div class="label">
+NovelLibrary Spreadsheet ID
+</div>
 
-    <button onclick="startApp()">START</button>
-  </div>
+<textarea id="novelId"></textarea>
 
-  <!-- INDEX -->
-  <div id="indexView"></div>
+<div class="label">
+ReviewDB Spreadsheet ID
+</div>
 
-  <!-- READING -->
-  <div id="readView" style="display:none;">
+<textarea id="reviewId"></textarea>
 
-    <div class="prev" id="prev"></div>
+<button onclick="startFirstSetup()">
+START
+</button>
 
-    <div class="current" id="current"></div>
+</div>
 
-    <div class="next" id="next"></div>
+<div id="indexView"></div>
 
-    <hr>
+<div id="readView" style="display:none;">
 
-    <div class="label">Answer（日本語OK・思考ログ）</div>
-    <textarea id="answer"></textarea>
+<div class="meta" id="meta"></div>
 
-    <div class="label">CorrectJP</div>
-    <div id="correct"></div>
+<div class="prev" id="prev"></div>
 
-    <div class="label">Memo</div>
-    <textarea id="memo"></textarea>
+<div class="current" id="current"></div>
 
-    <button onclick="backSentence()">BACK</button>
-    <button onclick="checkAnswer()">CHECK</button>
-    <button onclick="nextSentence()">NEXT</button>
-    <button onclick="goIndex()">SELECT</button>
+<div class="next" id="next"></div>
 
-  </div>
+<hr>
+
+<div class="label">
+Answer
+</div>
+
+<textarea id="answer"></textarea>
+
+<div class="label">
+CorrectJP
+</div>
+
+<div id="correct"></div>
+
+<div class="label">
+Memo
+</div>
+
+<div class="note" id="note"></div>
+
+<button onclick="backSentence()">
+BACK
+</button>
+
+<button onclick="checkAnswer()">
+CHECK
+</button>
+
+<button onclick="nextSentence()">
+NEXT
+</button>
+
+<button onclick="goIndex()">
+NovelSelect
+</button>
+
+</div>
 
 </div>
 
 <script>
 
-/* =========================
-   API
-========================= */
-
 const API_URL =
-"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
-
-/* =========================
-   STATE
-========================= */
+"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/execWQXOri_e9v8Qbo78p8OmRk23o9uikPE3J5GFFt-30";
 
 let config = {
-  novelId:"",
-  reviewId:""
+
+  novelSpreadsheetId:"",
+  reviewSpreadsheetId:""
+
 };
 
 let state = {
+
   novels:[],
   data:[],
   index:0,
-  selectedNovel:"",
-  sessionId:"S_" + Date.now()
+  selectedNovel:""
+
 };
 
 /* =========================
-   START
+   AUTO RESTORE
 ========================= */
 
-async function startApp(){
+window.onload = async ()=>{
 
-  config.novelId =
-    document.getElementById("novelId").value.trim();
+  const reviewId =
+    prompt(
+      "ReviewDB Spreadsheet ID"
+    );
 
-  config.reviewId =
-    document.getElementById("reviewId").value.trim();
+  if(!reviewId) return;
+
+  const res = await fetch(
+
+`${API_URL}?mode=restore&reviewSpreadsheetId=${reviewId}`
+
+  );
+
+  const json = await res.json();
+
+  if(json.first){
+
+    document.getElementById(
+      "setupView"
+    ).style.display = "block";
+
+    return;
+  }
+
+  config.novelSpreadsheetId =
+    json.novelSpreadsheetId;
+
+  config.reviewSpreadsheetId =
+    json.reviewSpreadsheetId;
 
   await loadIndex();
 
-  document.getElementById("setupView").style.display="none";
+  await loadNovel(
+    json.novelId,
+    json.currentIndex
+  );
+};
+
+/* =========================
+   FIRST SETUP
+========================= */
+
+async function startFirstSetup(){
+
+  config.novelSpreadsheetId =
+    document.getElementById(
+      "novelId"
+    ).value.trim();
+
+  config.reviewSpreadsheetId =
+    document.getElementById(
+      "reviewId"
+    ).value.trim();
+
+  await loadIndex();
+
+  document.getElementById(
+    "setupView"
+  ).style.display = "none";
 }
 
 /* =========================
@@ -241,7 +268,9 @@ async function startApp(){
 async function loadIndex(){
 
   const res = await fetch(
-    `${API_URL}?mode=list&spreadsheetId=${config.novelId}`
+
+`${API_URL}?mode=list&spreadsheetId=${config.novelSpreadsheetId}`
+
   );
 
   state.novels = await res.json();
@@ -250,40 +279,60 @@ async function loadIndex(){
 }
 
 /* =========================
-   INDEX
+   RENDER INDEX
 ========================= */
 
 function renderIndex(){
 
-  let html = "<h2>Novel List</h2>";
+  let html =
+    "<h2>Novel List</h2>";
 
   state.novels.forEach(n=>{
+
     html += `
-      <div class="titleCard"
-        onclick="loadNovel('${n.title}')">
-        ${n.title}
-      </div>`;
+
+<div class="titleCard"
+onclick="loadNovel('${n.title}',0)">
+${n.title}
+</div>
+
+`;
+
   });
 
-  document.getElementById("indexView").innerHTML = html;
+  document.getElementById(
+    "indexView"
+  ).innerHTML = html;
 }
 
 /* =========================
    LOAD NOVEL
 ========================= */
 
-async function loadNovel(title){
+async function loadNovel(
+  title,
+  startIndex
+){
 
   const res = await fetch(
-    `${API_URL}?sheet=${encodeURIComponent(title)}&spreadsheetId=${config.novelId}`
+
+`${API_URL}?mode=loadNovel&sheet=${encodeURIComponent(title)}&spreadsheetId=${config.novelSpreadsheetId}`
+
   );
 
   state.data = await res.json();
-  state.index = 0;
+
   state.selectedNovel = title;
 
-  document.getElementById("indexView").style.display="none";
-  document.getElementById("readView").style.display="block";
+  state.index = startIndex || 0;
+
+  document.getElementById(
+    "indexView"
+  ).style.display = "none";
+
+  document.getElementById(
+    "readView"
+  ).style.display = "block";
 
   render();
 }
@@ -294,49 +343,131 @@ async function loadNovel(title){
 
 function render(){
 
-  const d = state.data[state.index];
+  const d =
+    state.data[state.index];
+
   if(!d) return;
 
-  document.getElementById("current").innerText = d.english;
-  document.getElementById("prev").innerText =
-    state.data[state.index-1]?.english || "";
+  document.getElementById(
+    "meta"
+  ).innerText =
 
-  document.getElementById("next").innerText =
-    state.data[state.index+1]?.english || "";
+`${state.selectedNovel}
+${state.index+1}/${state.data.length}`;
 
-  document.getElementById("correct").innerText = d.correctJP;
+  const prevTexts = [];
 
-  document.getElementById("answer").value = "";
-  document.getElementById("memo").value = "";
+  if(state.data[state.index-2]){
+    prevTexts.push(
+      state.data[state.index-2].english
+    );
+  }
+
+  if(state.data[state.index-1]){
+    prevTexts.push(
+      state.data[state.index-1].english
+    );
+  }
+
+  document.getElementById(
+    "prev"
+  ).innerText =
+    prevTexts.join("\n");
+
+  document.getElementById(
+    "current"
+  ).innerText =
+    d.english;
+
+  const nextTexts = [];
+
+  if(state.data[state.index+1]){
+    nextTexts.push(
+      state.data[state.index+1].english
+    );
+  }
+
+  if(state.data[state.index+2]){
+    nextTexts.push(
+      state.data[state.index+2].english
+    );
+  }
+
+  document.getElementById(
+    "next"
+  ).innerText =
+    nextTexts.join("\n");
+
+  document.getElementById(
+    "correct"
+  ).innerText =
+    d.correctJP;
+
+  document.getElementById(
+    "note"
+  ).innerText =
+    d.note || "";
 }
 
 /* =========================
-   CHECK
+   SAVE
 ========================= */
 
 async function checkAnswer(){
 
-  const d = state.data[state.index];
+  const d =
+    state.data[state.index];
 
   await fetch(
-    `${API_URL}?spreadsheetId=${config.reviewId}`,
-    {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify({
-        sessionId:state.sessionId,
-        novelTitle:state.selectedNovel,
-        sentenceId:d.sentenceId,
-        chapter:d.chapter,
-        english:d.english,
-        answer:document.getElementById("answer").value,
-        memo:document.getElementById("memo").value,
-        time:new Date().toISOString()
-      })
-    }
-  );
+
+`${API_URL}?spreadsheetId=${config.reviewSpreadsheetId}`,
+
+{
+  method:"POST",
+
+  headers:{
+    "Content-Type":"application/json"
+  },
+
+  body:JSON.stringify({
+
+    novelId:
+      state.selectedNovel,
+
+    sentenceId:
+      d.sentenceId,
+
+    chapter:
+      d.chapter,
+
+    english:
+      d.english,
+
+    answer:
+      document.getElementById(
+        "answer"
+      ).value,
+
+    memo:
+      document.getElementById(
+        "memo"
+      ).value,
+
+    time:
+      new Date().toISOString(),
+
+    currentIndex:
+      state.index,
+
+    novelSpreadsheetId:
+      config.novelSpreadsheetId,
+
+    reviewSpreadsheetId:
+      config.reviewSpreadsheetId
+
+  })
+});
+
 }
 
 /* =========================
@@ -344,22 +475,37 @@ async function checkAnswer(){
 ========================= */
 
 function nextSentence(){
-  if(state.index < state.data.length-1){
+
+  if(
+    state.index <
+    state.data.length-1
+  ){
+
     state.index++;
+
     render();
   }
 }
 
 function backSentence(){
+
   if(state.index > 0){
+
     state.index--;
+
     render();
   }
 }
 
 function goIndex(){
-  document.getElementById("readView").style.display="none";
-  document.getElementById("indexView").style.display="block";
+
+  document.getElementById(
+    "readView"
+  ).style.display = "none";
+
+  document.getElementById(
+    "indexView"
+  ).style.display = "block";
 }
 
 </script>
