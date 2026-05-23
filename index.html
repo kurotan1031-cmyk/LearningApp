@@ -8,11 +8,26 @@
 
 <style>
 body{font-family:Arial;margin:0}
-.wrap{max-width:800px;margin:auto;padding:20px}
-.card{margin:10px 0}
-textarea{width:100%;height:80px}
-.prev,.next{color:#777;white-space:pre-wrap}
-.current{font-size:22px;margin:10px 0}
+.wrap{max-width:900px;margin:auto;padding:20px}
+
+.current{
+  font-size:22px;
+  margin:10px 0;
+  color:#111;
+}
+
+.prev,.next{
+  color:#777;
+  font-size:14px;
+  white-space:pre-wrap;
+}
+
+textarea{
+  width:100%;
+  height:70px;
+  margin-top:10px;
+}
+
 button{margin:5px}
 </style>
 </head>
@@ -25,21 +40,21 @@ button{margin:5px}
 
 <div id="setup" style="display:none">
 <h3>初回設定</h3>
-<textarea id="novelId" placeholder="NovelLibrary ID"></textarea>
-<textarea id="reviewId" placeholder="ReviewDB ID"></textarea>
+<textarea id="novelId" placeholder="NovelLibrary Spreadsheet ID"></textarea>
+<textarea id="reviewId" placeholder="ReviewDB Spreadsheet ID"></textarea>
 <button onclick="saveSetup()">保存</button>
 </div>
 
 <div id="app" style="display:none">
 
-<div id="prev"></div>
+<div id="prev" class="prev"></div>
 <div id="current" class="current"></div>
-<div id="next"></div>
+<div id="next" class="next"></div>
 
-<textarea id="answer"></textarea>
-<textarea id="memo"></textarea>
+<textarea id="answer" placeholder="answer"></textarea>
+<textarea id="memo" placeholder="memo"></textarea>
 
-<button onclick="check()">OK</button>
+<button onclick="save()">OK</button>
 <button onclick="next()">NEXT</button>
 
 </div>
@@ -48,7 +63,7 @@ button{margin:5px}
 
 <script>
 
-const API="https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
 let userId="";
 let config={};
@@ -58,8 +73,8 @@ let i=0;
 /* login */
 function handleCredentialResponse(res){
 
-  const p=JSON.parse(atob(res.credential.split('.')[1]));
-  userId=p.email;
+  const payload = JSON.parse(atob(res.credential.split('.')[1]));
+  userId = payload.email;
 
   restore();
 }
@@ -67,61 +82,68 @@ function handleCredentialResponse(res){
 /* restore */
 async function restore(){
 
-  const r=await fetch(`${API}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId||""}`);
-  const j=await r.json();
+  const r = await fetch(
+    `${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId||""}`
+  );
+
+  const j = await r.json();
 
   if(j.first){
     document.getElementById("setup").style.display="block";
     return;
   }
 
-  loadNovel(j.novelId,j.currentIndex||0);
+  loadNovel(j.novelId, j.currentIndex || 0);
 }
 
-/* save setup */
-async function saveSetup(){
+/* setup */
+function saveSetup(){
 
-  config.novelSpreadsheetId=document.getElementById("novelId").value;
-  config.reviewSpreadsheetId=document.getElementById("reviewId").value;
+  config.novelSpreadsheetId = document.getElementById("novelId").value.trim();
+  config.reviewSpreadsheetId = document.getElementById("reviewId").value.trim();
 
   document.getElementById("setup").style.display="none";
-
 }
 
 /* load */
 async function loadNovel(sheet,start){
 
-  const r=await fetch(`${API}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
-  data=await r.json();
+  const r = await fetch(
+    `${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`
+  );
 
-  i=start;
+  data = await r.json();
 
-  render();
+  i = start;
 
   document.getElementById("app").style.display="block";
+
+  render();
 }
 
 /* render */
 function render(){
 
-  const d=data[i];
+  const d = data[i];
+  if(!d) return;
 
-  document.getElementById("current").innerText=d.english;
+  document.getElementById("current").innerText = d.english;
 
-  document.getElementById("prev").innerText=
-    (data[i-1]?.english||"")+"\n"+(data[i-2]?.english||"");
+  document.getElementById("prev").innerText =
+    (data[i-1]?.english||"") + "\n" + (data[i-2]?.english||"");
 
-  document.getElementById("next").innerText=
-    (data[i+1]?.english||"")+"\n"+(data[i+2]?.english||"");
+  document.getElementById("next").innerText =
+    (data[i+1]?.english||"") + "\n" + (data[i+2]?.english||"");
 }
 
-/* check */
-async function check(){
+/* save */
+async function save(){
 
-  const d=data[i];
+  const d = data[i];
 
-  await fetch(API,{
+  await fetch(API_URL,{
     method:"POST",
+    headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
       userId,
       novelId:d.chapter,
