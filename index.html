@@ -99,7 +99,10 @@ button{
 
 <div class="card">
 
-<div id="setupView">
+<div
+id="setupView"
+style="display:none;"
+>
 
 <h2>Setup</h2>
 
@@ -123,15 +126,30 @@ START
 
 <div id="indexView"></div>
 
-<div id="readView" style="display:none;">
+<div
+id="readView"
+style="display:none;"
+>
 
-<div class="meta" id="meta"></div>
+<div
+class="meta"
+id="meta"
+></div>
 
-<div class="prev" id="prev"></div>
+<div
+class="prev"
+id="prev"
+></div>
 
-<div class="current" id="current"></div>
+<div
+class="current"
+id="current"
+></div>
 
-<div class="next" id="next"></div>
+<div
+class="next"
+id="next"
+></div>
 
 <hr>
 
@@ -151,7 +169,16 @@ CorrectJP
 Memo
 </div>
 
-<div class="note" id="note"></div>
+<textarea id="memo"></textarea>
+
+<div class="label">
+Note
+</div>
+
+<div
+class="note"
+id="note"
+></div>
 
 <button onclick="backSentence()">
 BACK
@@ -178,6 +205,17 @@ NovelSelect
 const API_URL =
 "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/execWQXOri_e9v8Qbo78p8OmRk23o9uikPE3J5GFFt-30";
 
+/* =========================
+   CONFIG DB
+========================= */
+
+const CONFIG_DB_ID =
+"あなたのReviewDBのID";
+
+/* =========================
+   STATE
+========================= */
+
 let config = {
 
   novelSpreadsheetId:"",
@@ -195,46 +233,58 @@ let state = {
 };
 
 /* =========================
-   AUTO RESTORE
+   AUTO LOGIN
 ========================= */
 
-window.onload = async ()=>{
+window.onload =
+async ()=>{
 
-  const reviewId =
-    prompt(
-      "ReviewDB Spreadsheet ID"
+  const configRes =
+    await fetch(
+
+`${API_URL}?mode=getUserConfig&configSpreadsheetId=${CONFIG_DB_ID}`
+
     );
 
-  if(!reviewId) return;
+  const configJson =
+    await configRes.json();
 
-  const res = await fetch(
-
-`${API_URL}?mode=restore&reviewSpreadsheetId=${reviewId}`
-
-  );
-
-  const json = await res.json();
-
-  if(json.first){
+  if(configJson.first){
 
     document.getElementById(
       "setupView"
-    ).style.display = "block";
+    ).style.display =
+      "block";
 
     return;
   }
 
   config.novelSpreadsheetId =
-    json.novelSpreadsheetId;
+    configJson
+      .novelSpreadsheetId;
 
   config.reviewSpreadsheetId =
-    json.reviewSpreadsheetId;
+    configJson
+      .reviewSpreadsheetId;
+
+  const restoreRes =
+    await fetch(
+
+`${API_URL}?mode=restore&reviewSpreadsheetId=${config.reviewSpreadsheetId}`
+
+    );
+
+  const restoreJson =
+    await restoreRes.json();
 
   await loadIndex();
 
   await loadNovel(
-    json.novelId,
-    json.currentIndex
+
+    restoreJson.novelId,
+
+    restoreJson.currentIndex
+
   );
 };
 
@@ -242,38 +292,77 @@ window.onload = async ()=>{
    FIRST SETUP
 ========================= */
 
-async function startFirstSetup(){
+async function
+startFirstSetup(){
 
   config.novelSpreadsheetId =
+
     document.getElementById(
       "novelId"
     ).value.trim();
 
   config.reviewSpreadsheetId =
+
     document.getElementById(
       "reviewId"
     ).value.trim();
+
+  await fetch(
+
+    API_URL,
+
+    {
+
+      method:"POST",
+
+      headers:{
+        "Content-Type":
+          "application/json"
+      },
+
+      body:JSON.stringify({
+
+        mode:
+          "saveUserConfig",
+
+        novelSpreadsheetId:
+          config
+            .novelSpreadsheetId,
+
+        reviewSpreadsheetId:
+          config
+            .reviewSpreadsheetId
+
+      })
+
+    }
+
+  );
 
   await loadIndex();
 
   document.getElementById(
     "setupView"
-  ).style.display = "none";
+  ).style.display =
+    "none";
 }
 
 /* =========================
    LOAD INDEX
 ========================= */
 
-async function loadIndex(){
+async function
+loadIndex(){
 
-  const res = await fetch(
+  const res =
+    await fetch(
 
 `${API_URL}?mode=list&spreadsheetId=${config.novelSpreadsheetId}`
 
-  );
+    );
 
-  state.novels = await res.json();
+  state.novels =
+    await res.json();
 
   renderIndex();
 }
@@ -287,12 +376,15 @@ function renderIndex(){
   let html =
     "<h2>Novel List</h2>";
 
-  state.novels.forEach(n=>{
+  state.novels
+    .forEach(n=>{
 
     html += `
 
-<div class="titleCard"
-onclick="loadNovel('${n.title}',0)">
+<div
+class="titleCard"
+onclick="loadNovel('${n.title}',0)"
+>
 ${n.title}
 </div>
 
@@ -309,30 +401,37 @@ ${n.title}
    LOAD NOVEL
 ========================= */
 
-async function loadNovel(
+async function
+loadNovel(
   title,
   startIndex
 ){
 
-  const res = await fetch(
+  const res =
+    await fetch(
 
 `${API_URL}?mode=loadNovel&sheet=${encodeURIComponent(title)}&spreadsheetId=${config.novelSpreadsheetId}`
 
-  );
+    );
 
-  state.data = await res.json();
+  state.data =
+    await res.json();
 
-  state.selectedNovel = title;
+  state.selectedNovel =
+    title;
 
-  state.index = startIndex || 0;
+  state.index =
+    startIndex || 0;
 
   document.getElementById(
     "indexView"
-  ).style.display = "none";
+  ).style.display =
+    "none";
 
   document.getElementById(
     "readView"
-  ).style.display = "block";
+  ).style.display =
+    "block";
 
   render();
 }
@@ -357,21 +456,40 @@ ${state.index+1}/${state.data.length}`;
 
   const prevTexts = [];
 
-  if(state.data[state.index-2]){
+  if(
+    state.data[
+      state.index-2
+    ]
+  ){
+
     prevTexts.push(
-      state.data[state.index-2].english
+
+      state.data[
+        state.index-2
+      ].english
+
     );
   }
 
-  if(state.data[state.index-1]){
+  if(
+    state.data[
+      state.index-1
+    ]
+  ){
+
     prevTexts.push(
-      state.data[state.index-1].english
+
+      state.data[
+        state.index-1
+      ].english
+
     );
   }
 
   document.getElementById(
     "prev"
   ).innerText =
+
     prevTexts.join("\n");
 
   document.getElementById(
@@ -381,21 +499,40 @@ ${state.index+1}/${state.data.length}`;
 
   const nextTexts = [];
 
-  if(state.data[state.index+1]){
+  if(
+    state.data[
+      state.index+1
+    ]
+  ){
+
     nextTexts.push(
-      state.data[state.index+1].english
+
+      state.data[
+        state.index+1
+      ].english
+
     );
   }
 
-  if(state.data[state.index+2]){
+  if(
+    state.data[
+      state.index+2
+    ]
+  ){
+
     nextTexts.push(
-      state.data[state.index+2].english
+
+      state.data[
+        state.index+2
+      ].english
+
     );
   }
 
   document.getElementById(
     "next"
   ).innerText =
+
     nextTexts.join("\n");
 
   document.getElementById(
@@ -410,23 +547,26 @@ ${state.index+1}/${state.data.length}`;
 }
 
 /* =========================
-   SAVE
+   CHECK
 ========================= */
 
-async function checkAnswer(){
+async function
+checkAnswer(){
 
   const d =
     state.data[state.index];
 
   await fetch(
 
-`${API_URL}?spreadsheetId=${config.reviewSpreadsheetId}`,
+API_URL,
 
 {
+
   method:"POST",
 
   headers:{
-    "Content-Type":"application/json"
+    "Content-Type":
+      "application/json"
   },
 
   body:JSON.stringify({
@@ -444,28 +584,34 @@ async function checkAnswer(){
       d.english,
 
     answer:
-      document.getElementById(
-        "answer"
-      ).value,
+      document
+        .getElementById(
+          "answer"
+        ).value,
 
     memo:
-      document.getElementById(
-        "memo"
-      ).value,
+      document
+        .getElementById(
+          "memo"
+        ).value,
 
     time:
-      new Date().toISOString(),
+      new Date()
+        .toISOString(),
 
     currentIndex:
       state.index,
 
     novelSpreadsheetId:
-      config.novelSpreadsheetId,
+      config
+        .novelSpreadsheetId,
 
     reviewSpreadsheetId:
-      config.reviewSpreadsheetId
+      config
+        .reviewSpreadsheetId
 
   })
+
 });
 
 }
@@ -477,8 +623,11 @@ async function checkAnswer(){
 function nextSentence(){
 
   if(
+
     state.index <
+
     state.data.length-1
+
   ){
 
     state.index++;
@@ -501,11 +650,13 @@ function goIndex(){
 
   document.getElementById(
     "readView"
-  ).style.display = "none";
+  ).style.display =
+    "none";
 
   document.getElementById(
     "indexView"
-  ).style.display = "block";
+  ).style.display =
+    "block";
 }
 
 </script>
