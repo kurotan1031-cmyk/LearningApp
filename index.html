@@ -80,8 +80,7 @@ button{
 
 <!-- LOGIN -->
 <div class="card">
-
-  <div class="status">Googleログイン</div>
+  <div class="status">Login</div>
 
   <div id="g_id_onload"
        data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
@@ -89,18 +88,17 @@ button{
   </div>
 
   <div class="g_id_signin"></div>
-
 </div>
 
 <!-- SETUP -->
 <div id="setup" class="card" style="display:none">
 
-  <div class="status">初回 or 未設定</div>
+  <div class="status">初回設定</div>
 
   <textarea id="novelId" placeholder="Novel Spreadsheet ID"></textarea>
   <textarea id="reviewId" placeholder="Review Spreadsheet ID"></textarea>
 
-  <button class="primary" onclick="saveSetup()">開始</button>
+  <button class="primary" onclick="saveSetup()">START</button>
 
 </div>
 
@@ -108,17 +106,17 @@ button{
 <div id="app" style="display:none">
 
   <div class="card">
-    <div class="status">前（2文）</div>
+    <div class="status">Prev</div>
     <div id="prev" class="prev"></div>
   </div>
 
   <div class="card">
-    <div class="status">現在</div>
+    <div class="status">Current</div>
     <div id="current" class="current"></div>
   </div>
 
   <div class="card">
-    <div class="status">次（2文）</div>
+    <div class="status">Next</div>
     <div id="next" class="nextText"></div>
   </div>
 
@@ -142,29 +140,28 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuN
 
 let userId = "";
 let config = {
-  novelSpreadsheetId:"",
-  reviewSpreadsheetId:""
+  novelSpreadsheetId: "",
+  reviewSpreadsheetId: ""
 };
+
 let data = [];
 let i = 0;
 
 /* LOGIN */
 function handleCredentialResponse(res){
-
   const payload = JSON.parse(atob(res.credential.split('.')[1]));
   userId = payload.email;
 
   restore();
 }
 
-/* RESTORE（Apps Script完全準拠） */
+/* RESTORE */
 async function restore(){
 
   const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId}`);
   const j = await r.json();
 
   if(j.first || !j.novelId || !j.reviewSpreadsheetId){
-
     document.getElementById("setup").style.display = "block";
     document.getElementById("app").style.display = "none";
     return;
@@ -176,15 +173,23 @@ async function restore(){
   loadNovel(j.novelId, j.currentIndex || 0);
 }
 
-/* SETUP SAVE */
+/* SETUP SAVE（完全安定版） */
 function saveSetup(){
 
-  config.novelSpreadsheetId = document.getElementById("novelId").value.trim();
-  config.reviewSpreadsheetId = document.getElementById("reviewId").value.trim();
+  const novel = document.getElementById("novelId").value.trim();
+  const review = document.getElementById("reviewId").value.trim();
+
+  if(!novel || !review){
+    alert("IDを両方入力してください");
+    return;
+  }
+
+  config.novelSpreadsheetId = novel;
+  config.reviewSpreadsheetId = review;
 
   document.getElementById("setup").style.display = "none";
 
-  restore();
+  loadNovel(novel, 0);
 }
 
 /* LOAD */
@@ -194,14 +199,18 @@ async function loadNovel(sheet,start){
   data = await r.json();
 
   i = start;
+
   document.getElementById("app").style.display = "block";
+
   render();
 }
 
 /* RENDER */
 function render(){
 
-  document.getElementById("current").innerText = data[i]?.english || "";
+  if(!data[i]) return;
+
+  document.getElementById("current").innerText = data[i].english;
 
   document.getElementById("prev").innerText =
     (data[i-1]?.english || "") + "\n" + (data[i-2]?.english || "");
