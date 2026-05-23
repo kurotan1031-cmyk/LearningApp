@@ -1,180 +1,46 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-
 <meta charset="UTF-8">
-
-<title>LearningApp</title>
+<title>Learning App</title>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
-
-body{
-  margin:0;
-  font-family:Arial;
-  background:#fff;
-  color:#111;
-}
-
-.card{
-  max-width:720px;
-  margin:20px auto;
-  padding:20px;
-}
-
-.titleCard{
-  padding:12px;
-  border:1px solid #ddd;
-  margin:8px 0;
-  cursor:pointer;
-}
-
-.prev,
-.next{
-  font-size:16px;
-  color:#777;
-  line-height:1.5;
-  white-space:pre-wrap;
-  margin:8px 0;
-}
-
-.current{
-  font-size:22px;
-  line-height:1.6;
-  margin:14px 0;
-}
-
-textarea{
-  width:100%;
-  min-height:70px;
-}
-
-button{
-  padding:10px;
-  margin:5px 5px 5px 0;
-}
-
-.label{
-  font-size:12px;
-  color:#666;
-  margin-top:10px;
-}
-
-#correct{
-  white-space:pre-wrap;
-  color:#444;
-}
-
-.note{
-  white-space:pre-wrap;
-}
-
+body{font-family:Arial;margin:0}
+.wrap{max-width:800px;margin:auto;padding:20px}
+.card{margin:10px 0}
+textarea{width:100%;height:80px}
+.prev,.next{color:#777;white-space:pre-wrap}
+.current{font-size:22px;margin:10px 0}
+button{margin:5px}
 </style>
-
 </head>
 
 <body>
 
-<div class="card">
+<div class="wrap">
 
-<div id="loginView">
+<div id="login"></div>
 
-<div
-id="g_id_onload"
-data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
-data-callback="handleCredentialResponse"
-></div>
-
-<div
-class="g_id_signin"
-data-type="standard"
-></div>
-
+<div id="setup" style="display:none">
+<h3>初回設定</h3>
+<textarea id="novelId" placeholder="NovelLibrary ID"></textarea>
+<textarea id="reviewId" placeholder="ReviewDB ID"></textarea>
+<button onclick="saveSetup()">保存</button>
 </div>
 
-<div
-id="setupView"
-style="display:none;"
->
+<div id="app" style="display:none">
 
-<h2>Setup</h2>
-
-<div class="label">
-NovelLibrary Spreadsheet ID
-</div>
-
-<textarea id="novelId"></textarea>
-
-<div class="label">
-ReviewDB Spreadsheet ID
-</div>
-
-<textarea id="reviewId"></textarea>
-
-<button onclick="startFirstSetup()">
-START
-</button>
-
-</div>
-
-<div id="indexView"></div>
-
-<div
-id="readView"
-style="display:none;"
->
-
-<div id="prev" class="prev"></div>
-
-<div
-id="current"
-class="current"
-></div>
-
-<div id="next" class="next"></div>
-
-<hr>
-
-<div class="label">
-Answer
-</div>
+<div id="prev"></div>
+<div id="current" class="current"></div>
+<div id="next"></div>
 
 <textarea id="answer"></textarea>
-
-<div class="label">
-CorrectJP
-</div>
-
-<div id="correct"></div>
-
-<div class="label">
-Memo
-</div>
-
 <textarea id="memo"></textarea>
 
-<div class="label">
-Note
-</div>
-
-<div id="note"></div>
-
-<button onclick="backSentence()">
-BACK
-</button>
-
-<button onclick="checkAnswer()">
-CHECK
-</button>
-
-<button onclick="nextSentence()">
-NEXT
-</button>
-
-<button onclick="goIndex()">
-NovelSelect
-</button>
+<button onclick="check()">OK</button>
+<button onclick="next()">NEXT</button>
 
 </div>
 
@@ -182,471 +48,103 @@ NovelSelect
 
 <script>
 
-const API_URL =
-"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/execWQXOri_e9v8Qbo78p8OmRk23o9uikPE3J5GFFt-30
+const API="https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/execWQXOri_e9v8Qbo78p8OmRk23o9uikPE3J5GFFt-30";
 
-";
+let userId="";
+let config={};
+let data=[];
+let i=0;
 
-const CONFIG_DB_ID =
-"YOUR_REVIEW_DB_ID";
+/* login */
+function handleCredentialResponse(res){
 
-let userId = "";
+  const p=JSON.parse(atob(res.credential.split('.')[1]));
+  userId=p.email;
 
-let config = {
+  restore();
+}
 
-  novelSpreadsheetId:"",
-  reviewSpreadsheetId:""
+/* restore */
+async function restore(){
 
-};
+  const r=await fetch(`${API}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId||""}`);
+  const j=await r.json();
 
-let state = {
-
-  novels:[],
-  data:[],
-  index:0,
-  selectedNovel:""
-
-};
-
-/* =========================
-   GOOGLE LOGIN
-========================= */
-
-async function
-handleCredentialResponse(
-  response
-){
-
-  const payload =
-    JSON.parse(
-
-      atob(
-        response.credential
-          .split(".")[1]
-      )
-
-    );
-
-  userId =
-    payload.email;
-
-  const configRes =
-    await fetch(
-
-`${API_URL}?mode=getUserConfig&configSpreadsheetId=${CONFIG_DB_ID}&userId=${encodeURIComponent(userId)}`
-
-    );
-
-  const configJson =
-    await configRes.json();
-
-  document.getElementById(
-    "loginView"
-  ).style.display =
-    "none";
-
-  if(configJson.first){
-
-    document.getElementById(
-      "setupView"
-    ).style.display =
-      "block";
-
+  if(j.first){
+    document.getElementById("setup").style.display="block";
     return;
   }
 
-  config.novelSpreadsheetId =
-    configJson
-      .novelSpreadsheetId;
-
-  config.reviewSpreadsheetId =
-    configJson
-      .reviewSpreadsheetId;
-
-  const restoreRes =
-    await fetch(
-
-`${API_URL}?mode=restore&reviewSpreadsheetId=${config.reviewSpreadsheetId}&userId=${encodeURIComponent(userId)}`
-
-    );
-
-  const restoreJson =
-    await restoreRes.json();
-
-  await loadIndex();
-
-  await loadNovel(
-
-    restoreJson.novelId,
-
-    restoreJson.currentIndex
-
-  );
+  loadNovel(j.novelId,j.currentIndex||0);
 }
 
-/* =========================
-   FIRST SETUP
-========================= */
+/* save setup */
+async function saveSetup(){
 
-async function
-startFirstSetup(){
+  config.novelSpreadsheetId=document.getElementById("novelId").value;
+  config.reviewSpreadsheetId=document.getElementById("reviewId").value;
 
-  config.novelSpreadsheetId =
+  document.getElementById("setup").style.display="none";
 
-    document.getElementById(
-      "novelId"
-    ).value.trim();
-
-  config.reviewSpreadsheetId =
-
-    document.getElementById(
-      "reviewId"
-    ).value.trim();
-
-  await fetch(
-
-    API_URL,
-
-    {
-
-      method:"POST",
-
-      headers:{
-        "Content-Type":
-          "application/json"
-      },
-
-      body:JSON.stringify({
-
-        mode:
-          "saveUserConfig",
-
-        userId,
-
-        novelSpreadsheetId:
-          config
-            .novelSpreadsheetId,
-
-        reviewSpreadsheetId:
-          config
-            .reviewSpreadsheetId
-
-      })
-
-    }
-
-  );
-
-  await loadIndex();
-
-  document.getElementById(
-    "setupView"
-  ).style.display =
-    "none";
 }
 
-/* =========================
-   LOAD INDEX
-========================= */
+/* load */
+async function loadNovel(sheet,start){
 
-async function
-loadIndex(){
+  const r=await fetch(`${API}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
+  data=await r.json();
 
-  const res =
-    await fetch(
-
-`${API_URL}?mode=list&spreadsheetId=${config.novelSpreadsheetId}`
-
-    );
-
-  state.novels =
-    await res.json();
-
-  renderIndex();
-}
-
-/* =========================
-   RENDER INDEX
-========================= */
-
-function renderIndex(){
-
-  let html =
-    "<h2>Novel List</h2>";
-
-  state.novels
-    .forEach(n=>{
-
-    html += `
-
-<div
-class="titleCard"
-onclick="loadNovel('${n.title}',0)"
->
-${n.title}
-</div>
-
-`;
-
-  });
-
-  document.getElementById(
-    "indexView"
-  ).innerHTML = html;
-}
-
-/* =========================
-   LOAD NOVEL
-========================= */
-
-async function
-loadNovel(
-  title,
-  startIndex
-){
-
-  const res =
-    await fetch(
-
-`${API_URL}?mode=loadNovel&sheet=${encodeURIComponent(title)}&spreadsheetId=${config.novelSpreadsheetId}`
-
-    );
-
-  state.data =
-    await res.json();
-
-  state.selectedNovel =
-    title;
-
-  state.index =
-    startIndex || 0;
-
-  document.getElementById(
-    "indexView"
-  ).style.display =
-    "none";
-
-  document.getElementById(
-    "readView"
-  ).style.display =
-    "block";
+  i=start;
 
   render();
+
+  document.getElementById("app").style.display="block";
 }
 
-/* =========================
-   RENDER
-========================= */
-
+/* render */
 function render(){
 
-  const d =
-    state.data[state.index];
+  const d=data[i];
 
-  if(!d) return;
+  document.getElementById("current").innerText=d.english;
 
-  const prevTexts = [];
+  document.getElementById("prev").innerText=
+    (data[i-1]?.english||"")+"\n"+(data[i-2]?.english||"");
 
-  if(
-    state.data[
-      state.index-2
-    ]
-  ){
-
-    prevTexts.push(
-
-      state.data[
-        state.index-2
-      ].english
-
-    );
-  }
-
-  if(
-    state.data[
-      state.index-1
-    ]
-  ){
-
-    prevTexts.push(
-
-      state.data[
-        state.index-1
-      ].english
-
-    );
-  }
-
-  document.getElementById(
-    "prev"
-  ).innerText =
-
-    prevTexts.join("\n");
-
-  document.getElementById(
-    "current"
-  ).innerText =
-    d.english;
-
-  const nextTexts = [];
-
-  if(
-    state.data[
-      state.index+1
-    ]
-  ){
-
-    nextTexts.push(
-
-      state.data[
-        state.index+1
-      ].english
-
-    );
-  }
-
-  if(
-    state.data[
-      state.index+2
-    ]
-  ){
-
-    nextTexts.push(
-
-      state.data[
-        state.index+2
-      ].english
-
-    );
-  }
-
-  document.getElementById(
-    "next"
-  ).innerText =
-
-    nextTexts.join("\n");
-
-  document.getElementById(
-    "correct"
-  ).innerText =
-    d.correctJP;
-
-  document.getElementById(
-    "note"
-  ).innerText =
-    d.note || "";
+  document.getElementById("next").innerText=
+    (data[i+1]?.english||"")+"\n"+(data[i+2]?.english||"");
 }
 
-/* =========================
-   CHECK
-========================= */
+/* check */
+async function check(){
 
-async function
-checkAnswer(){
+  const d=data[i];
 
-  const d =
-    state.data[state.index];
-
-  await fetch(
-
-API_URL,
-
-{
-
-  method:"POST",
-
-  headers:{
-    "Content-Type":
-      "application/json"
-  },
-
-  body:JSON.stringify({
-
-    userId,
-
-    novelId:
-      state.selectedNovel,
-
-    sentenceId:
-      d.sentenceId,
-
-    chapter:
-      d.chapter,
-
-    english:
-      d.english,
-
-    answer:
-      document
-        .getElementById(
-          "answer"
-        ).value,
-
-    memo:
-      document
-        .getElementById(
-          "memo"
-        ).value,
-
-    time:
-      new Date()
-        .toISOString(),
-
-    currentIndex:
-      state.index,
-
-    novelSpreadsheetId:
-      config
-        .novelSpreadsheetId,
-
-    reviewSpreadsheetId:
-      config
-        .reviewSpreadsheetId
-
-  })
-
-});
+  await fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      userId,
+      novelId:d.chapter,
+      sentenceId:i,
+      chapter:d.chapter,
+      english:d.english,
+      answer:document.getElementById("answer").value,
+      memo:document.getElementById("memo").value,
+      time:new Date().toISOString(),
+      currentIndex:i,
+      novelSpreadsheetId:config.novelSpreadsheetId,
+      reviewSpreadsheetId:config.reviewSpreadsheetId
+    })
+  });
 
 }
 
-/* =========================
-   NAV
-========================= */
-
-function nextSentence(){
-
-  if(
-    state.index <
-    state.data.length-1
-  ){
-
-    state.index++;
-
+/* next */
+function next(){
+  if(i<data.length-1){
+    i++;
     render();
   }
-}
-
-function backSentence(){
-
-  if(state.index > 0){
-
-    state.index--;
-
-    render();
-  }
-}
-
-function goIndex(){
-
-  document.getElementById(
-    "readView"
-  ).style.display =
-    "none";
-
-  document.getElementById(
-    "indexView"
-  ).style.display =
-    "block";
 }
 
 </script>
