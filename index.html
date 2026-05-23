@@ -7,12 +7,110 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
-body{font-family:Arial;margin:0}
-.wrap{max-width:900px;margin:auto;padding:20px}
-.current{font-size:22px;margin:10px 0}
-.prev,.next{color:#777;white-space:pre-wrap;font-size:14px}
-textarea{width:100%;height:70px;margin-top:10px}
-button{margin:5px}
+body{
+  font-family:Arial;
+  margin:0;
+  background:#f4f6f8;
+  color:#333;
+}
+
+.wrap{
+  max-width:900px;
+  margin:auto;
+  padding:16px;
+}
+
+/* カード */
+.card{
+  background:#fff;
+  padding:14px;
+  border-radius:12px;
+  margin-bottom:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* 現在文 */
+.current{
+  font-size:22px;
+  font-weight:bold;
+}
+
+/* prev / next */
+.prev,.nextText{
+  color:#666;
+  white-space:pre-wrap;
+  font-size:14px;
+}
+
+/* 入力 */
+textarea{
+  width:100%;
+  height:70px;
+  margin-top:8px;
+  padding:10px;
+  font-size:14px;
+}
+
+/* ボタン */
+button{
+  padding:10px 14px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  margin-top:10px;
+}
+
+.primary{background:#4CAF50;color:white}
+.nextBtn{background:#2196F3;color:white}
+
+/* ステータス */
+.status{
+  font-size:12px;
+  color:#888;
+  margin-bottom:6px;
+}
+
+/* ===================== */
+/* PC専用レイアウト */
+/* ===================== */
+@media (min-width: 768px){
+
+  .wrap{
+    max-width:1100px;
+  }
+
+  .current{
+    font-size:28px;
+  }
+
+  textarea{
+    height:90px;
+    font-size:15px;
+  }
+
+  .prev,.nextText{
+    font-size:16px;
+  }
+}
+
+/* ===================== */
+/* スマホ最適化 */
+/* ===================== */
+@media (max-width: 767px){
+
+  .current{
+    font-size:20px;
+  }
+
+  .prev,.nextText{
+    font-size:13px;
+  }
+
+  button{
+    width:100%;
+  }
+}
+
 </style>
 
 </head>
@@ -21,34 +119,59 @@ button{margin:5px}
 
 <div class="wrap">
 
-<!-- Googleログインボタン -->
-<div id="g_id_onload"
-     data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
-     data-callback="handleCredentialResponse">
+<!-- ログイン -->
+<div class="card">
+  <div class="status">Googleログインしてください</div>
+
+  <div id="g_id_onload"
+       data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse">
+  </div>
+
+  <div class="g_id_signin"></div>
 </div>
 
-<div class="g_id_signin"></div>
+<!-- 初期設定 -->
+<div id="setup" class="card" style="display:none">
 
-<!-- 初回設定 -->
-<div id="setup" style="display:none">
-<h3>初回設定</h3>
-<textarea id="novelId" placeholder="Novel Spreadsheet ID"></textarea>
-<textarea id="reviewId" placeholder="ReviewDB Spreadsheet ID"></textarea>
-<button onclick="saveSetup()">保存</button>
+  <div class="status">初回のみ設定が必要です</div>
+
+  <label>英語教材スプレッドシートID</label>
+  <textarea id="novelId"></textarea>
+
+  <label>復習データ保存スプレッドシートID</label>
+  <textarea id="reviewId"></textarea>
+
+  <button class="primary" onclick="saveSetup()">設定して開始</button>
 </div>
 
-<!-- アプリ本体 -->
+<!-- 本体 -->
 <div id="app" style="display:none">
 
-<div id="prev"></div>
-<div id="current" class="current"></div>
-<div id="next"></div>
+  <div class="card">
+    <div class="status">前の文（2文）</div>
+    <div id="prev" class="prev"></div>
+  </div>
 
-<textarea id="answer"></textarea>
-<textarea id="memo"></textarea>
+  <div class="card">
+    <div class="status">現在の文</div>
+    <div id="current" class="current"></div>
+  </div>
 
-<button onclick="save()">SAVE</button>
-<button onclick="next()">NEXT</button>
+  <div class="card">
+    <div class="status">次の文（2文）</div>
+    <div id="next" class="nextText"></div>
+  </div>
+
+  <div class="card">
+    <div class="status">入力</div>
+
+    <textarea id="answer" placeholder="英語の意味"></textarea>
+    <textarea id="memo" placeholder="メモ"></textarea>
+
+    <button class="primary" onclick="save()">保存</button>
+    <button class="nextBtn" onclick="next()">次へ</button>
+  </div>
 
 </div>
 
@@ -63,23 +186,14 @@ let config = {};
 let data = [];
 let i = 0;
 
-/* Googleログイン成功 */
+/* login */
 function handleCredentialResponse(res){
-
-  try{
-    const payload = JSON.parse(atob(res.credential.split('.')[1]));
-    userId = payload.email;
-
-    console.log("LOGIN OK:", userId);
-
-    restore();
-
-  }catch(e){
-    console.error("login error", e);
-  }
+  const payload = JSON.parse(atob(res.credential.split('.')[1]));
+  userId = payload.email;
+  restore();
 }
 
-/* 初期化（重要：これが今回の本体） */
+/* init */
 window.onload = () => {
 
   google.accounts.id.initialize({
@@ -96,23 +210,18 @@ window.onload = () => {
 /* restore */
 async function restore(){
 
-  try{
-    const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId||""}`);
-    const j = await r.json();
+  const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId||""}`);
+  const j = await r.json();
 
-    if(j.first){
-      document.getElementById("setup").style.display = "block";
-      return;
-    }
-
-    loadNovel(j.novelId, j.currentIndex || 0);
-
-  }catch(e){
-    console.error(e);
+  if(j.first){
+    document.getElementById("setup").style.display = "block";
+    return;
   }
+
+  loadNovel(j.novelId, j.currentIndex || 0);
 }
 
-/* 初回設定保存 */
+/* setup */
 function saveSetup(){
 
   config.novelSpreadsheetId = document.getElementById("novelId").value.trim();
@@ -121,24 +230,18 @@ function saveSetup(){
   document.getElementById("setup").style.display = "none";
 }
 
-/* ノベルロード */
+/* load */
 async function loadNovel(sheet,start){
 
-  try{
-    const r = await fetch(`${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
-    data = await r.json();
+  const r = await fetch(`${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
+  data = await r.json();
 
-    i = start;
-
-    document.getElementById("app").style.display = "block";
-    render();
-
-  }catch(e){
-    console.error(e);
-  }
+  i = start;
+  document.getElementById("app").style.display = "block";
+  render();
 }
 
-/* 表示 */
+/* render */
 function render(){
 
   if(!data[i]) return;
@@ -152,7 +255,7 @@ function render(){
     (data[i+1]?.english || "") + "\n" + (data[i+2]?.english || "");
 }
 
-/* 保存 */
+/* save */
 async function save(){
 
   const d = data[i];
