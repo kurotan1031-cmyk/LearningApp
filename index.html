@@ -13,13 +13,12 @@ body{font-family:Arial;margin:0}
 .current{
   font-size:22px;
   margin:10px 0;
-  color:#111;
 }
 
 .prev,.next{
   color:#777;
-  font-size:14px;
   white-space:pre-wrap;
+  font-size:14px;
 }
 
 textarea{
@@ -40,7 +39,7 @@ button{margin:5px}
 
 <div id="setup" style="display:none">
 <h3>初回設定</h3>
-<textarea id="novelId" placeholder="NovelLibrary Spreadsheet ID"></textarea>
+<textarea id="novelId" placeholder="Novel Spreadsheet ID"></textarea>
 <textarea id="reviewId" placeholder="ReviewDB Spreadsheet ID"></textarea>
 <button onclick="saveSetup()">保存</button>
 </div>
@@ -54,7 +53,7 @@ button{margin:5px}
 <textarea id="answer" placeholder="answer"></textarea>
 <textarea id="memo" placeholder="memo"></textarea>
 
-<button onclick="save()">OK</button>
+<button onclick="save()">SAVE</button>
 <button onclick="next()">NEXT</button>
 
 </div>
@@ -66,75 +65,68 @@ button{margin:5px}
 const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec
 ";
 
-let userId="";
-let config={};
-let data=[];
-let i=0;
+let userId = "";
+let config = {};
+let data = [];
+let i = 0;
 
-/* login */
+/* Google login */
 function handleCredentialResponse(res){
-
   const payload = JSON.parse(atob(res.credential.split('.')[1]));
   userId = payload.email;
-
   restore();
 }
 
 /* restore */
 async function restore(){
 
-  const r = await fetch(
-    `${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId||""}`
-  );
+  try{
+    const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId || ""}`);
+    const j = await r.json();
 
-  const j = await r.json();
+    if(j.first){
+      document.getElementById("setup").style.display = "block";
+      return;
+    }
 
-  if(j.first){
-    document.getElementById("setup").style.display="block";
-    return;
+    loadNovel(j.novelId, j.currentIndex || 0);
+
+  }catch(e){
+    console.error(e);
   }
-
-  loadNovel(j.novelId, j.currentIndex || 0);
 }
 
 /* setup */
 function saveSetup(){
-
   config.novelSpreadsheetId = document.getElementById("novelId").value.trim();
   config.reviewSpreadsheetId = document.getElementById("reviewId").value.trim();
 
-  document.getElementById("setup").style.display="none";
+  document.getElementById("setup").style.display = "none";
 }
 
-/* load */
+/* load novel */
 async function loadNovel(sheet,start){
 
-  const r = await fetch(
-    `${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`
-  );
-
+  const r = await fetch(`${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
   data = await r.json();
 
   i = start;
-
-  document.getElementById("app").style.display="block";
-
+  document.getElementById("app").style.display = "block";
   render();
 }
 
 /* render */
 function render(){
 
-  const d = data[i];
-  if(!d) return;
+  if(!data[i]) return;
 
-  document.getElementById("current").innerText = d.english;
+  document.getElementById("current").innerText = data[i].english;
 
   document.getElementById("prev").innerText =
-    (data[i-1]?.english||"") + "\n" + (data[i-2]?.english||"");
+    (data[i-1]?.english || "") + "\n" + (data[i-2]?.english || "");
 
   document.getElementById("next").innerText =
-    (data[i+1]?.english||"") + "\n" + (data[i+2]?.english||"");
+    (data[i+1]?.english || "") + "\n" + (data[i+2]?.english || "");
 }
 
 /* save */
@@ -164,7 +156,7 @@ async function save(){
 
 /* next */
 function next(){
-  if(i<data.length-1){
+  if(i < data.length - 1){
     i++;
     render();
   }
