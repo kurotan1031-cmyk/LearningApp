@@ -9,24 +9,9 @@
 <style>
 body{font-family:Arial;margin:0}
 .wrap{max-width:900px;margin:auto;padding:20px}
-
-.current{
-  font-size:22px;
-  margin:10px 0;
-}
-
-.prev,.next{
-  color:#777;
-  white-space:pre-wrap;
-  font-size:14px;
-}
-
-textarea{
-  width:100%;
-  height:70px;
-  margin-top:10px;
-}
-
+.current{font-size:22px;margin:10px 0}
+.prev,.next{color:#777;white-space:pre-wrap;font-size:14px}
+textarea{width:100%;height:70px;margin-top:10px}
 button{margin:5px}
 </style>
 </head>
@@ -46,12 +31,12 @@ button{margin:5px}
 
 <div id="app" style="display:none">
 
-<div id="prev" class="prev"></div>
+<div id="prev"></div>
 <div id="current" class="current"></div>
-<div id="next" class="next"></div>
+<div id="next"></div>
 
-<textarea id="answer" placeholder="answer"></textarea>
-<textarea id="memo" placeholder="memo"></textarea>
+<textarea id="answer"></textarea>
+<textarea id="memo"></textarea>
 
 <button onclick="save()">SAVE</button>
 <button onclick="next()">NEXT</button>
@@ -64,23 +49,26 @@ button{margin:5px}
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
-let userId = "";
-let config = {};
+let userId = "debug-user";
+let config = {
+  novelSpreadsheetId:"",
+  reviewSpreadsheetId:""
+};
 let data = [];
 let i = 0;
 
-/* Google login */
-function handleCredentialResponse(res){
-  const payload = JSON.parse(atob(res.credential.split('.')[1]));
-  userId = payload.email;
-  restore();
-}
+/* 起動確認 */
+window.onload = () => {
+  console.log("APP LOADED");
+  document.getElementById("app").style.display = "none";
+  document.getElementById("setup").style.display = "block";
+};
 
-/* restore */
+/* restore（安全化） */
 async function restore(){
 
   try{
-    const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId || ""}`);
+    const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId}`);
     const j = await r.json();
 
     if(j.first){
@@ -91,27 +79,35 @@ async function restore(){
     loadNovel(j.novelId, j.currentIndex || 0);
 
   }catch(e){
-    console.error(e);
+    console.error("restore error", e);
   }
 }
 
 /* setup */
 function saveSetup(){
+
   config.novelSpreadsheetId = document.getElementById("novelId").value.trim();
   config.reviewSpreadsheetId = document.getElementById("reviewId").value.trim();
 
   document.getElementById("setup").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  restore();
 }
 
-/* load novel */
+/* load */
 async function loadNovel(sheet,start){
 
-  const r = await fetch(`${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
-  data = await r.json();
+  try{
+    const r = await fetch(`${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
+    data = await r.json();
 
-  i = start;
-  document.getElementById("app").style.display = "block";
-  render();
+    i = start;
+    render();
+
+  }catch(e){
+    console.error("load error", e);
+  }
 }
 
 /* render */
