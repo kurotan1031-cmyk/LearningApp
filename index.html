@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+
 <meta charset="UTF-8">
+
 <title>LearningApp</title>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
 
@@ -26,24 +30,17 @@ body{
   cursor:pointer;
 }
 
-.meta{
-  font-size:13px;
-  color:#666;
-  margin-bottom:20px;
-}
-
 .prev,
 .next{
   font-size:16px;
   color:#777;
   line-height:1.5;
-  margin:8px 0;
   white-space:pre-wrap;
+  margin:8px 0;
 }
 
 .current{
   font-size:22px;
-  color:#111;
   line-height:1.6;
   margin:14px 0;
 }
@@ -65,39 +62,36 @@ button{
 }
 
 #correct{
-  color:#444;
   white-space:pre-wrap;
-  line-height:1.6;
+  color:#444;
 }
 
 .note{
   white-space:pre-wrap;
-  color:#444;
-  line-height:1.5;
-}
-
-@media (max-width:767px){
-
-  .card{
-    padding:16px;
-  }
-
-  .current{
-    font-size:20px;
-  }
-
-  .prev,
-  .next{
-    font-size:14px;
-  }
 }
 
 </style>
+
 </head>
 
 <body>
 
 <div class="card">
+
+<div id="loginView">
+
+<div
+id="g_id_onload"
+data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
+data-callback="handleCredentialResponse"
+></div>
+
+<div
+class="g_id_signin"
+data-type="standard"
+></div>
+
+</div>
 
 <div
 id="setupView"
@@ -131,25 +125,14 @@ id="readView"
 style="display:none;"
 >
 
-<div
-class="meta"
-id="meta"
-></div>
+<div id="prev" class="prev"></div>
 
 <div
-class="prev"
-id="prev"
-></div>
-
-<div
-class="current"
 id="current"
+class="current"
 ></div>
 
-<div
-class="next"
-id="next"
-></div>
+<div id="next" class="next"></div>
 
 <hr>
 
@@ -175,10 +158,7 @@ Memo
 Note
 </div>
 
-<div
-class="note"
-id="note"
-></div>
+<div id="note"></div>
 
 <button onclick="backSentence()">
 BACK
@@ -203,18 +183,12 @@ NovelSelect
 <script>
 
 const API_URL =
-"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/execWQXOri_e9v8Qbo78p8OmRk23o9uikPE3J5GFFt-30";
-
-/* =========================
-   CONFIG DB
-========================= */
+"YOUR_APPS_SCRIPT_URL";
 
 const CONFIG_DB_ID =
-"あなたのReviewDBのID";
+"YOUR_REVIEW_DB_ID";
 
-/* =========================
-   STATE
-========================= */
+let userId = "";
 
 let config = {
 
@@ -233,21 +207,41 @@ let state = {
 };
 
 /* =========================
-   AUTO LOGIN
+   GOOGLE LOGIN
 ========================= */
 
-window.onload =
-async ()=>{
+async function
+handleCredentialResponse(
+  response
+){
+
+  const payload =
+    JSON.parse(
+
+      atob(
+        response.credential
+          .split(".")[1]
+      )
+
+    );
+
+  userId =
+    payload.email;
 
   const configRes =
     await fetch(
 
-`${API_URL}?mode=getUserConfig&configSpreadsheetId=${CONFIG_DB_ID}`
+`${API_URL}?mode=getUserConfig&configSpreadsheetId=${CONFIG_DB_ID}&userId=${encodeURIComponent(userId)}`
 
     );
 
   const configJson =
     await configRes.json();
+
+  document.getElementById(
+    "loginView"
+  ).style.display =
+    "none";
 
   if(configJson.first){
 
@@ -270,7 +264,7 @@ async ()=>{
   const restoreRes =
     await fetch(
 
-`${API_URL}?mode=restore&reviewSpreadsheetId=${config.reviewSpreadsheetId}`
+`${API_URL}?mode=restore&reviewSpreadsheetId=${config.reviewSpreadsheetId}&userId=${encodeURIComponent(userId)}`
 
     );
 
@@ -286,7 +280,7 @@ async ()=>{
     restoreJson.currentIndex
 
   );
-};
+}
 
 /* =========================
    FIRST SETUP
@@ -324,6 +318,8 @@ startFirstSetup(){
 
         mode:
           "saveUserConfig",
+
+        userId,
 
         novelSpreadsheetId:
           config
@@ -447,13 +443,6 @@ function render(){
 
   if(!d) return;
 
-  document.getElementById(
-    "meta"
-  ).innerText =
-
-`${state.selectedNovel}
-${state.index+1}/${state.data.length}`;
-
   const prevTexts = [];
 
   if(
@@ -571,6 +560,8 @@ API_URL,
 
   body:JSON.stringify({
 
+    userId,
+
     novelId:
       state.selectedNovel,
 
@@ -623,11 +614,8 @@ API_URL,
 function nextSentence(){
 
   if(
-
     state.index <
-
     state.data.length-1
-
   ){
 
     state.index++;
