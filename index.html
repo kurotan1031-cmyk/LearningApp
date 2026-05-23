@@ -20,7 +20,6 @@ body{
   padding:16px;
 }
 
-/* カード */
 .card{
   background:#fff;
   padding:14px;
@@ -29,20 +28,28 @@ body{
   box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* 現在文 */
+h1{
+  font-size:20px;
+  margin:0 0 10px 0;
+}
+
+.status{
+  font-size:12px;
+  color:#888;
+  margin-bottom:6px;
+}
+
 .current{
   font-size:22px;
   font-weight:bold;
 }
 
-/* prev / next */
 .prev,.nextText{
   color:#666;
   white-space:pre-wrap;
   font-size:14px;
 }
 
-/* 入力 */
 textarea{
   width:100%;
   height:70px;
@@ -51,7 +58,6 @@ textarea{
   font-size:14px;
 }
 
-/* ボタン */
 button{
   padding:10px 14px;
   border:none;
@@ -63,54 +69,17 @@ button{
 .primary{background:#4CAF50;color:white}
 .nextBtn{background:#2196F3;color:white}
 
-/* ステータス */
-.status{
-  font-size:12px;
-  color:#888;
-  margin-bottom:6px;
-}
-
-/* ===================== */
-/* PC専用レイアウト */
-/* ===================== */
+/* PC */
 @media (min-width: 768px){
-
-  .wrap{
-    max-width:1100px;
-  }
-
-  .current{
-    font-size:28px;
-  }
-
-  textarea{
-    height:90px;
-    font-size:15px;
-  }
-
-  .prev,.nextText{
-    font-size:16px;
-  }
+  .current{font-size:28px}
+  textarea{height:90px}
+  .prev,.nextText{font-size:16px}
 }
 
-/* ===================== */
-/* スマホ最適化 */
-/* ===================== */
+/* SP */
 @media (max-width: 767px){
-
-  .current{
-    font-size:20px;
-  }
-
-  .prev,.nextText{
-    font-size:13px;
-  }
-
-  button{
-    width:100%;
-  }
+  button{width:100%}
 }
-
 </style>
 
 </head>
@@ -119,9 +88,11 @@ button{
 
 <div class="wrap">
 
-<!-- ログイン -->
+<!-- Googleログイン（ここだけで完結） -->
 <div class="card">
-  <div class="status">Googleログインしてください</div>
+
+  <h1>英語学習アプリ</h1>
+  <div class="status">Googleアカウントでログインしてください</div>
 
   <div id="g_id_onload"
        data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
@@ -129,12 +100,13 @@ button{
   </div>
 
   <div class="g_id_signin"></div>
+
 </div>
 
 <!-- 初期設定 -->
 <div id="setup" class="card" style="display:none">
 
-  <div class="status">初回のみ設定が必要です</div>
+  <div class="status">初回のみ設定</div>
 
   <label>英語教材スプレッドシートID</label>
   <textarea id="novelId"></textarea>
@@ -143,23 +115,24 @@ button{
   <textarea id="reviewId"></textarea>
 
   <button class="primary" onclick="saveSetup()">設定して開始</button>
+
 </div>
 
 <!-- 本体 -->
 <div id="app" style="display:none">
 
   <div class="card">
-    <div class="status">前の文（2文）</div>
+    <div class="status">前（2文）</div>
     <div id="prev" class="prev"></div>
   </div>
 
   <div class="card">
-    <div class="status">現在の文</div>
+    <div class="status">現在</div>
     <div id="current" class="current"></div>
   </div>
 
   <div class="card">
-    <div class="status">次の文（2文）</div>
+    <div class="status">次（2文）</div>
     <div id="next" class="nextText"></div>
   </div>
 
@@ -186,26 +159,19 @@ let config = {};
 let data = [];
 let i = 0;
 
-/* login */
+/* Googleログイン成功 */
 function handleCredentialResponse(res){
-  const payload = JSON.parse(atob(res.credential.split('.')[1]));
-  userId = payload.email;
-  restore();
+
+  try{
+    const payload = JSON.parse(atob(res.credential.split('.')[1]));
+    userId = payload.email;
+
+    restore();
+
+  }catch(e){
+    console.error("login error", e);
+  }
 }
-
-/* init */
-window.onload = () => {
-
-  google.accounts.id.initialize({
-    client_id: "YOUR_CLIENT_ID",
-    callback: handleCredentialResponse
-  });
-
-  google.accounts.id.renderButton(
-    document.querySelector(".g_id_signin"),
-    { theme: "outline", size: "large" }
-  );
-};
 
 /* restore */
 async function restore(){
