@@ -80,6 +80,7 @@ button{
 
 <!-- LOGIN -->
 <div class="card">
+
   <div class="status">Login</div>
 
   <div id="g_id_onload"
@@ -88,6 +89,7 @@ button{
   </div>
 
   <div class="g_id_signin"></div>
+
 </div>
 
 <!-- SETUP -->
@@ -140,8 +142,8 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuN
 
 let userId = "";
 let config = {
-  novelSpreadsheetId: "",
-  reviewSpreadsheetId: ""
+  novelSpreadsheetId:"",
+  reviewSpreadsheetId:""
 };
 
 let data = [];
@@ -151,17 +153,17 @@ let i = 0;
 function handleCredentialResponse(res){
   const payload = JSON.parse(atob(res.credential.split('.')[1]));
   userId = payload.email;
-
   restore();
 }
 
-/* RESTORE */
+/* RESTORE（完全安定版） */
 async function restore(){
 
   const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId}`);
   const j = await r.json();
 
-  if(j.first || !j.novelId || !j.reviewSpreadsheetId){
+  if(j.status === "no_config" || j.status === "new_user"){
+
     document.getElementById("setup").style.display = "block";
     document.getElementById("app").style.display = "none";
     return;
@@ -173,14 +175,14 @@ async function restore(){
   loadNovel(j.novelId, j.currentIndex || 0);
 }
 
-/* SETUP SAVE（完全安定版） */
+/* SETUP SAVE */
 function saveSetup(){
 
   const novel = document.getElementById("novelId").value.trim();
   const review = document.getElementById("reviewId").value.trim();
 
   if(!novel || !review){
-    alert("IDを両方入力してください");
+    alert("両方入力してください");
     return;
   }
 
