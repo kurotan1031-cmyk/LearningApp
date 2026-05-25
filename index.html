@@ -15,7 +15,6 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
 .hidden{display:none;}
 .current{font-size:22px;font-weight:bold;}
 </style>
-
 </head>
 
 <body>
@@ -38,7 +37,7 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
   <button onclick="saveConfig()">START</button>
 </div>
 
-<!-- NOVEL SELECT -->
+<!-- SELECT -->
 <div id="select" class="card hidden">
   <select id="novelList"></select>
   <button onclick="openNovel()">OPEN</button>
@@ -49,6 +48,8 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
   <div id="current" class="current"></div>
 </div>
 
+</div>
+
 <script>
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
@@ -56,56 +57,60 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuN
 let userId = "";
 let config = {};
 let data = [];
-let currentIndex = 0;
+let index = 0;
 
-/* LOGIN */
+/* -------------------------
+   JSONP共通関数
+------------------------- */
+function jsonp(url){
+
+  return new Promise((resolve)=>{
+
+    const cb = "cb_" + Math.random().toString(36).substr(2,9);
+
+    window[cb] = function(res){
+      delete window[cb];
+      document.body.removeChild(script);
+      resolve(res);
+    };
+
+    const script = document.createElement("script");
+
+    script.src = url + "&callback=" + cb;
+
+    document.body.appendChild(script);
+  });
+}
+
+/* -------------------------
+   LOGIN
+------------------------- */
 function handleLogin(res){
 
-  const payload = JSON.parse(atob(res.credential.split('.')[1]));
+  const payload =
+    JSON.parse(atob(res.credential.split('.')[1]));
+
   userId = payload.sub || payload.email;
 
-  restore();
+  document.getElementById("setup")
+    .classList.remove("hidden");
 }
 
-/* RESTORE */
-async function restore(){
-
-  const r = await fetch(
-    `${API_URL}?mode=restoreConfig&userId=${userId}&reviewSpreadsheetId=`
-  );
-
-  const j = await r.json();
-
-  if(j.status !== "ok"){
-    document.getElementById("setup").classList.remove("hidden");
-    return;
-  }
-
-  config = j;
-
-  loadNovelList();
-}
-
-/* SAVE CONFIG */
+/* -------------------------
+   SAVE CONFIG + LIST
+------------------------- */
 async function saveConfig(){
 
-  config.novelSpreadsheetId =
+  config.novelId =
     document.getElementById("novelId").value.trim();
 
-  config.reviewSpreadsheetId =
+  config.reviewId =
     document.getElementById("reviewId").value.trim();
 
-  loadNovelList();
-}
+  const url =
+    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`;
 
-/* NOVEL LIST */
-async function loadNovelList(){
-
-  const r = await fetch(
-    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelSpreadsheetId}`
-  );
-
-  const list = await r.json();
+  const list = await jsonp(url);
 
   const sel = document.getElementById("novelList");
   sel.innerHTML = "";
@@ -121,28 +126,35 @@ async function loadNovelList(){
   document.getElementById("select").classList.remove("hidden");
 }
 
-/* OPEN NOVEL */
+/* -------------------------
+   OPEN NOVEL
+------------------------- */
 async function openNovel(){
 
-  const sheetName = document.getElementById("novelList").value;
+  const sheetName =
+    document.getElementById("novelList").value;
 
-  const r = await fetch(
-    `${API_URL}?mode=loadNovel&spreadsheetId=${config.novelSpreadsheetId}&sheetName=${sheetName}`
-  );
+  const url =
+    `${API_URL}?mode=loadNovel`
+    + `&spreadsheetId=${config.novelId}`
+    + `&sheetName=${sheetName}`;
 
-  data = await r.json();
+  data = await jsonp(url);
 
   document.getElementById("select").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
 
-  currentIndex = 0;
+  index = 0;
   render();
 }
 
-/* RENDER */
+/* -------------------------
+   RENDER
+------------------------- */
 function render(){
+
   document.getElementById("current").innerText =
-    data[currentIndex]?.english || "END";
+    data[index]?.english || "END";
 }
 
 </script>
