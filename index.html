@@ -117,7 +117,9 @@ button{
 </div>
 
 <!-- SETUP -->
-<div id="setup" class="card" style="display:none">
+<div id="setup"
+     class="card"
+     style="display:none">
 
   <div class="status">初回設定</div>
 
@@ -155,7 +157,8 @@ button{
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none">
+<div id="app"
+     style="display:none">
 
   <div class="card">
 
@@ -246,36 +249,92 @@ function handleCredentialResponse(res){
 /* RESTORE */
 async function restore(){
 
-  const r =
-    await fetch(
-      `${API_URL}?mode=restore&userId=${userId}`
+  try{
+
+    const r =
+      await fetch(
+        `${API_URL}?mode=restore&userId=${userId}`
+      );
+
+    const j =
+      await r.json();
+
+    console.log(j);
+
+    /* 初回 or エラー */
+    if(
+      j.status === "new_user" ||
+      j.status === "error" ||
+      !j.status
+    ){
+
+      document.getElementById("setup")
+        .style.display = "block";
+
+      document.getElementById("novelSelectWrap")
+        .style.display = "none";
+
+      document.getElementById("app")
+        .style.display = "none";
+
+      return;
+    }
+
+    /* config restore */
+    config.novelSpreadsheetId =
+      j.novelSpreadsheetId || "";
+
+    config.reviewSpreadsheetId =
+      j.reviewSpreadsheetId || "";
+
+    currentSheetName =
+      j.sheetName || "";
+
+    /* ID不足 */
+    if(
+      !config.novelSpreadsheetId ||
+      !config.reviewSpreadsheetId
+    ){
+
+      document.getElementById("setup")
+        .style.display = "block";
+
+      document.getElementById("novelSelectWrap")
+        .style.display = "none";
+
+      document.getElementById("app")
+        .style.display = "none";
+
+      return;
+    }
+
+    /* 小説未選択 */
+    if(!currentSheetName){
+
+      loadNovelList();
+
+      return;
+    }
+
+    /* resume */
+    loadNovel(
+      currentSheetName,
+      j.currentIndex || 0
     );
 
-  const j =
-    await r.json();
+  }catch(err){
 
-  /* 初回 */
-  if(j.status === "new_user"){
+    console.error(err);
 
     document.getElementById("setup")
       .style.display = "block";
 
-    return;
+    document.getElementById("novelSelectWrap")
+      .style.display = "none";
+
+    document.getElementById("app")
+      .style.display = "none";
   }
-
-  config.novelSpreadsheetId =
-    j.novelSpreadsheetId;
-
-  config.reviewSpreadsheetId =
-    j.reviewSpreadsheetId;
-
-  currentSheetName =
-    j.sheetName;
-
-  loadNovel(
-    currentSheetName,
-    j.currentIndex || 0
-  );
 }
 
 /* SAVE SETUP */
