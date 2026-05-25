@@ -50,12 +50,14 @@ textarea{
   height:70px;
   margin-top:8px;
   padding:10px;
+  box-sizing:border-box;
 }
 
 select{
   width:100%;
   padding:10px;
   margin-top:10px;
+  box-sizing:border-box;
 }
 
 button{
@@ -261,7 +263,6 @@ async function restore(){
 
     console.log(j);
 
-    /* 初回 or エラー */
     if(
       j.status === "new_user" ||
       j.status === "error" ||
@@ -280,7 +281,6 @@ async function restore(){
       return;
     }
 
-    /* config restore */
     config.novelSpreadsheetId =
       j.novelSpreadsheetId || "";
 
@@ -290,7 +290,6 @@ async function restore(){
     currentSheetName =
       j.sheetName || "";
 
-    /* ID不足 */
     if(
       !config.novelSpreadsheetId ||
       !config.reviewSpreadsheetId
@@ -299,16 +298,9 @@ async function restore(){
       document.getElementById("setup")
         .style.display = "block";
 
-      document.getElementById("novelSelectWrap")
-        .style.display = "none";
-
-      document.getElementById("app")
-        .style.display = "none";
-
       return;
     }
 
-    /* 小説未選択 */
     if(!currentSheetName){
 
       loadNovelList();
@@ -316,7 +308,6 @@ async function restore(){
       return;
     }
 
-    /* resume */
     loadNovel(
       currentSheetName,
       j.currentIndex || 0
@@ -328,12 +319,6 @@ async function restore(){
 
     document.getElementById("setup")
       .style.display = "block";
-
-    document.getElementById("novelSelectWrap")
-      .style.display = "none";
-
-    document.getElementById("app")
-      .style.display = "none";
   }
 }
 
@@ -347,6 +332,16 @@ async function saveSetup(){
   config.reviewSpreadsheetId =
     document.getElementById("reviewId")
       .value.trim();
+
+  if(
+    !config.novelSpreadsheetId ||
+    !config.reviewSpreadsheetId
+  ){
+
+    alert("IDを入力してください");
+
+    return;
+  }
 
   await fetch(API_URL,{
 
@@ -377,37 +372,74 @@ async function saveSetup(){
 /* LOAD NOVEL LIST */
 async function loadNovelList(){
 
-  document.getElementById("setup")
-    .style.display = "none";
+  try{
 
-  document.getElementById("novelSelectWrap")
-    .style.display = "block";
+    document.getElementById("setup")
+      .style.display = "none";
 
-  const r =
-    await fetch(
-      `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelSpreadsheetId}`
-    );
+    document.getElementById("novelSelectWrap")
+      .style.display = "block";
 
-  const list =
-    await r.json();
+    const r =
+      await fetch(
+        `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelSpreadsheetId}`
+      );
 
-  const sel =
-    document.getElementById("novelSelect");
+    const list =
+      await r.json();
 
-  sel.innerHTML = "";
+    console.log(list);
 
-  list.forEach(n=>{
+    const sel =
+      document.getElementById("novelSelect");
 
-    const op =
-      document.createElement("option");
+    sel.innerHTML = "";
 
-    op.value = n.name;
+    if(
+      list.status === "error" ||
+      !Array.isArray(list)
+    ){
 
-    op.textContent = n.name;
+      alert(
+        "Spreadsheet取得失敗\n\n" +
+        (list.message || "")
+      );
 
-    sel.appendChild(op);
+      document.getElementById("setup")
+        .style.display = "block";
 
-  });
+      document.getElementById("novelSelectWrap")
+        .style.display = "none";
+
+      return;
+    }
+
+    if(list.length === 0){
+
+      alert("シートが存在しません");
+
+      return;
+    }
+
+    list.forEach(n=>{
+
+      const op =
+        document.createElement("option");
+
+      op.value = n.name;
+
+      op.textContent = n.name;
+
+      sel.appendChild(op);
+
+    });
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("小説一覧取得失敗");
+  }
 }
 
 /* SELECT NOVEL */
@@ -454,20 +486,42 @@ async function selectNovel(){
 /* LOAD NOVEL */
 async function loadNovel(sheetName,start){
 
-  const r =
-    await fetch(
-      `${API_URL}?mode=loadNovel&spreadsheetId=${config.novelSpreadsheetId}&sheetName=${sheetName}`
-    );
+  try{
 
-  data =
-    await r.json();
+    const r =
+      await fetch(
+        `${API_URL}?mode=loadNovel&spreadsheetId=${config.novelSpreadsheetId}&sheetName=${sheetName}`
+      );
 
-  i = start;
+    data =
+      await r.json();
 
-  document.getElementById("app")
-    .style.display = "block";
+    if(
+      data.status === "error" ||
+      !Array.isArray(data)
+    ){
 
-  render();
+      alert(
+        "小説読み込み失敗\n\n" +
+        (data.message || "")
+      );
+
+      return;
+    }
+
+    i = start;
+
+    document.getElementById("app")
+      .style.display = "block";
+
+    render();
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("小説読み込み失敗");
+  }
 }
 
 /* RENDER */
@@ -541,7 +595,6 @@ async function save(){
     })
   });
 
-  /* progress save */
   await fetch(API_URL,{
 
     method:"POST",
