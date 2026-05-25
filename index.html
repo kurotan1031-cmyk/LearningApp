@@ -51,6 +51,12 @@ textarea{
   padding:10px;
 }
 
+select{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+}
+
 button{
   padding:10px 14px;
   border:none;
@@ -102,6 +108,12 @@ button{
 
   <button class="primary" onclick="saveSetup()">START</button>
 
+  <select id="novelSelect"></select>
+
+  <button class="primary" onclick="selectNovel()">
+    SELECT NOVEL
+  </button>
+
 </div>
 
 <!-- APP -->
@@ -138,9 +150,10 @@ button{
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
+const API_URL = "YOUR_GAS_URL";
 
 let userId = "";
+
 let config = {
   novelSpreadsheetId:"",
   reviewSpreadsheetId:""
@@ -151,21 +164,29 @@ let i = 0;
 
 /* LOGIN */
 function handleCredentialResponse(res){
-  const payload = JSON.parse(atob(res.credential.split('.')[1]));
+
+  const payload =
+    JSON.parse(atob(res.credential.split('.')[1]));
+
   userId = payload.email;
+
   restore();
 }
 
-/* RESTORE（完全安定版） */
+/* RESTORE */
 async function restore(){
 
-  const r = await fetch(`${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId}`);
+  const r = await fetch(
+    `${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId}`
+  );
+
   const j = await r.json();
 
   if(j.status === "no_config" || j.status === "new_user"){
 
     document.getElementById("setup").style.display = "block";
     document.getElementById("app").style.display = "none";
+
     return;
   }
 
@@ -175,29 +196,71 @@ async function restore(){
   loadNovel(j.novelId, j.currentIndex || 0);
 }
 
-/* SETUP SAVE */
+/* SAVE SETUP */
 function saveSetup(){
 
-  const novel = document.getElementById("novelId").value.trim();
-  const review = document.getElementById("reviewId").value.trim();
+  const novel =
+    document.getElementById("novelId").value.trim();
+
+  const review =
+    document.getElementById("reviewId").value.trim();
 
   if(!novel || !review){
+
     alert("両方入力してください");
+
     return;
   }
 
   config.novelSpreadsheetId = novel;
   config.reviewSpreadsheetId = review;
 
+  loadNovelList();
+}
+
+/* LOAD NOVEL LIST */
+async function loadNovelList(){
+
+  const r = await fetch(
+    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelSpreadsheetId}`
+  );
+
+  const list = await r.json();
+
+  const sel = document.getElementById("novelSelect");
+
+  sel.innerHTML = "";
+
+  list.forEach(n=>{
+
+    const op = document.createElement("option");
+
+    op.value = n.name;
+    op.textContent = n.name;
+
+    sel.appendChild(op);
+
+  });
+}
+
+/* SELECT NOVEL */
+function selectNovel(){
+
+  const sheetName =
+    document.getElementById("novelSelect").value;
+
   document.getElementById("setup").style.display = "none";
 
-  loadNovel(novel, 0);
+  loadNovel(sheetName,0);
 }
 
 /* LOAD */
 async function loadNovel(sheet,start){
 
-  const r = await fetch(`${API_URL}?mode=loadNovel&sheet=${sheet}&spreadsheetId=${config.novelSpreadsheetId}`);
+  const r = await fetch(
+    `${API_URL}?mode=loadNovel&spreadsheetId=${config.novelSpreadsheetId}&sheetName=${sheet}`
+  );
+
   data = await r.json();
 
   i = start;
@@ -212,13 +275,18 @@ function render(){
 
   if(!data[i]) return;
 
-  document.getElementById("current").innerText = data[i].english;
+  document.getElementById("current").innerText =
+    data[i].english;
 
   document.getElementById("prev").innerText =
-    (data[i-1]?.english || "") + "\n" + (data[i-2]?.english || "");
+    (data[i-1]?.english || "") +
+    "\n" +
+    (data[i-2]?.english || "");
 
   document.getElementById("next").innerText =
-    (data[i+1]?.english || "") + "\n" + (data[i+2]?.english || "");
+    (data[i+1]?.english || "") +
+    "\n" +
+    (data[i+2]?.english || "");
 }
 
 /* SAVE */
@@ -228,7 +296,9 @@ async function save(){
 
   await fetch(API_URL,{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
+    headers:{
+      "Content-Type":"application/json"
+    },
     body:JSON.stringify({
       userId,
       novelId:d.chapter,
@@ -242,13 +312,15 @@ async function save(){
       reviewSpreadsheetId:config.reviewSpreadsheetId
     })
   });
-
 }
 
 /* NEXT */
 function next(){
+
   if(i < data.length - 1){
+
     i++;
+
     render();
   }
 }
