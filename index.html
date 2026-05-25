@@ -7,6 +7,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
+
 body{
   font-family:Arial;
   margin:0;
@@ -65,17 +66,34 @@ button{
   margin-top:10px;
 }
 
-.primary{background:#4CAF50;color:#fff}
-.nextBtn{background:#2196F3;color:#fff}
+.primary{
+  background:#4CAF50;
+  color:#fff;
+}
+
+.nextBtn{
+  background:#2196F3;
+  color:#fff;
+}
 
 @media (min-width:768px){
-  .current{font-size:28px}
-  textarea{height:90px}
+
+  .current{
+    font-size:28px;
+  }
+
+  textarea{
+    height:90px;
+  }
 }
 
 @media (max-width:767px){
-  button{width:100%}
+
+  button{
+    width:100%;
+  }
 }
+
 </style>
 
 </head>
@@ -103,15 +121,35 @@ button{
 
   <div class="status">初回設定</div>
 
-  <textarea id="novelId" placeholder="Novel Spreadsheet ID"></textarea>
-  <textarea id="reviewId" placeholder="Review Spreadsheet ID"></textarea>
+  <textarea id="novelId"
+    placeholder="NovelLibrary Spreadsheet ID"></textarea>
 
-  <button class="primary" onclick="saveSetup()">START</button>
+  <textarea id="reviewId"
+    placeholder="ReviewDB Spreadsheet ID"></textarea>
+
+  <button class="primary"
+    onclick="saveSetup()">
+
+    START
+
+  </button>
+
+</div>
+
+<!-- NOVEL SELECT -->
+<div id="novelSelectWrap"
+     class="card"
+     style="display:none">
+
+  <div class="status">小説選択</div>
 
   <select id="novelSelect"></select>
 
-  <button class="primary" onclick="selectNovel()">
+  <button class="primary"
+    onclick="selectNovel()">
+
     SELECT NOVEL
+
   </button>
 
 </div>
@@ -120,27 +158,51 @@ button{
 <div id="app" style="display:none">
 
   <div class="card">
+
     <div class="status">Prev</div>
-    <div id="prev" class="prev"></div>
+
+    <div id="prev"
+      class="prev"></div>
+
   </div>
 
   <div class="card">
+
     <div class="status">Current</div>
-    <div id="current" class="current"></div>
+
+    <div id="current"
+      class="current"></div>
+
   </div>
 
   <div class="card">
+
     <div class="status">Next</div>
-    <div id="next" class="nextText"></div>
+
+    <div id="next"
+      class="nextText"></div>
+
   </div>
 
   <div class="card">
 
     <textarea id="answer"></textarea>
+
     <textarea id="memo"></textarea>
 
-    <button class="primary" onclick="save()">SAVE</button>
-    <button class="nextBtn" onclick="next()">NEXT</button>
+    <button class="primary"
+      onclick="save()">
+
+      SAVE
+
+    </button>
+
+    <button class="nextBtn"
+      onclick="nextSentence()">
+
+      NEXT
+
+    </button>
 
   </div>
 
@@ -150,7 +212,8 @@ button{
 
 <script>
 
-const API_URL = "YOUR_GAS_URL";
+const API_URL =
+"YOUR_GAS_URL";
 
 let userId = "";
 
@@ -159,14 +222,21 @@ let config = {
   reviewSpreadsheetId:""
 };
 
+let currentSheetName = "";
+
 let data = [];
+
 let i = 0;
 
 /* LOGIN */
 function handleCredentialResponse(res){
 
   const payload =
-    JSON.parse(atob(res.credential.split('.')[1]));
+    JSON.parse(
+      atob(
+        res.credential.split('.')[1]
+      )
+    );
 
   userId = payload.email;
 
@@ -176,44 +246,71 @@ function handleCredentialResponse(res){
 /* RESTORE */
 async function restore(){
 
-  const r = await fetch(
-    `${API_URL}?mode=restore&userId=${userId}&reviewSpreadsheetId=${config.reviewSpreadsheetId}`
-  );
+  const r =
+    await fetch(
+      `${API_URL}?mode=restore&userId=${userId}`
+    );
 
-  const j = await r.json();
+  const j =
+    await r.json();
 
-  if(j.status === "no_config" || j.status === "new_user"){
+  /* 初回 */
+  if(j.status === "new_user"){
 
-    document.getElementById("setup").style.display = "block";
-    document.getElementById("app").style.display = "none";
+    document.getElementById("setup")
+      .style.display = "block";
 
     return;
   }
 
-  config.novelSpreadsheetId = j.novelId;
-  config.reviewSpreadsheetId = j.reviewSpreadsheetId;
+  config.novelSpreadsheetId =
+    j.novelSpreadsheetId;
 
-  loadNovel(j.novelId, j.currentIndex || 0);
+  config.reviewSpreadsheetId =
+    j.reviewSpreadsheetId;
+
+  currentSheetName =
+    j.sheetName;
+
+  loadNovel(
+    currentSheetName,
+    j.currentIndex || 0
+  );
 }
 
 /* SAVE SETUP */
-function saveSetup(){
+async function saveSetup(){
 
-  const novel =
-    document.getElementById("novelId").value.trim();
+  config.novelSpreadsheetId =
+    document.getElementById("novelId")
+      .value.trim();
 
-  const review =
-    document.getElementById("reviewId").value.trim();
+  config.reviewSpreadsheetId =
+    document.getElementById("reviewId")
+      .value.trim();
 
-  if(!novel || !review){
+  await fetch(API_URL,{
 
-    alert("両方入力してください");
+    method:"POST",
 
-    return;
-  }
+    headers:{
+      "Content-Type":"application/json"
+    },
 
-  config.novelSpreadsheetId = novel;
-  config.reviewSpreadsheetId = review;
+    body:JSON.stringify({
+
+      type:"config",
+
+      userId,
+
+      novelSpreadsheetId:
+        config.novelSpreadsheetId,
+
+      reviewSpreadsheetId:
+        config.reviewSpreadsheetId
+
+    })
+  });
 
   loadNovelList();
 }
@@ -221,21 +318,32 @@ function saveSetup(){
 /* LOAD NOVEL LIST */
 async function loadNovelList(){
 
-  const r = await fetch(
-    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelSpreadsheetId}`
-  );
+  document.getElementById("setup")
+    .style.display = "none";
 
-  const list = await r.json();
+  document.getElementById("novelSelectWrap")
+    .style.display = "block";
 
-  const sel = document.getElementById("novelSelect");
+  const r =
+    await fetch(
+      `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelSpreadsheetId}`
+    );
+
+  const list =
+    await r.json();
+
+  const sel =
+    document.getElementById("novelSelect");
 
   sel.innerHTML = "";
 
   list.forEach(n=>{
 
-    const op = document.createElement("option");
+    const op =
+      document.createElement("option");
 
     op.value = n.name;
+
     op.textContent = n.name;
 
     sel.appendChild(op);
@@ -244,28 +352,61 @@ async function loadNovelList(){
 }
 
 /* SELECT NOVEL */
-function selectNovel(){
+async function selectNovel(){
 
-  const sheetName =
-    document.getElementById("novelSelect").value;
+  currentSheetName =
+    document.getElementById("novelSelect")
+      .value;
 
-  document.getElementById("setup").style.display = "none";
+  await fetch(API_URL,{
 
-  loadNovel(sheetName,0);
+    method:"POST",
+
+    headers:{
+      "Content-Type":"application/json"
+    },
+
+    body:JSON.stringify({
+
+      type:"config",
+
+      userId,
+
+      novelSpreadsheetId:
+        config.novelSpreadsheetId,
+
+      reviewSpreadsheetId:
+        config.reviewSpreadsheetId,
+
+      sheetName:
+        currentSheetName,
+
+      currentIndex:0
+
+    })
+  });
+
+  document.getElementById("novelSelectWrap")
+    .style.display = "none";
+
+  loadNovel(currentSheetName,0);
 }
 
-/* LOAD */
-async function loadNovel(sheet,start){
+/* LOAD NOVEL */
+async function loadNovel(sheetName,start){
 
-  const r = await fetch(
-    `${API_URL}?mode=loadNovel&spreadsheetId=${config.novelSpreadsheetId}&sheetName=${sheet}`
-  );
+  const r =
+    await fetch(
+      `${API_URL}?mode=loadNovel&spreadsheetId=${config.novelSpreadsheetId}&sheetName=${sheetName}`
+    );
 
-  data = await r.json();
+  data =
+    await r.json();
 
   i = start;
 
-  document.getElementById("app").style.display = "block";
+  document.getElementById("app")
+    .style.display = "block";
 
   render();
 }
@@ -275,47 +416,104 @@ function render(){
 
   if(!data[i]) return;
 
-  document.getElementById("current").innerText =
-    data[i].english;
+  document.getElementById("current")
+    .innerText =
+      data[i].english;
 
-  document.getElementById("prev").innerText =
-    (data[i-1]?.english || "") +
-    "\n" +
-    (data[i-2]?.english || "");
+  document.getElementById("prev")
+    .innerText =
 
-  document.getElementById("next").innerText =
-    (data[i+1]?.english || "") +
-    "\n" +
-    (data[i+2]?.english || "");
+      (data[i-1]?.english || "")
+      + "\n" +
+      (data[i-2]?.english || "");
+
+  document.getElementById("next")
+    .innerText =
+
+      (data[i+1]?.english || "")
+      + "\n" +
+      (data[i+2]?.english || "");
 }
 
 /* SAVE */
 async function save(){
 
-  const d = data[i];
+  const d =
+    data[i];
 
   await fetch(API_URL,{
+
     method:"POST",
+
     headers:{
       "Content-Type":"application/json"
     },
+
     body:JSON.stringify({
+
       userId,
-      novelId:d.chapter,
+
+      novelSpreadsheetId:
+        config.novelSpreadsheetId,
+
+      reviewSpreadsheetId:
+        config.reviewSpreadsheetId,
+
+      sheetName:
+        currentSheetName,
+
       sentenceId:i,
+
       chapter:d.chapter,
+
       english:d.english,
-      answer:answer.value,
-      memo:memo.value,
-      time:new Date().toISOString(),
-      currentIndex:i,
-      reviewSpreadsheetId:config.reviewSpreadsheetId
+
+      answer:
+        answer.value,
+
+      memo:
+        memo.value,
+
+      time:
+        new Date().toISOString(),
+
+      currentIndex:i
+
+    })
+  });
+
+  /* progress save */
+  await fetch(API_URL,{
+
+    method:"POST",
+
+    headers:{
+      "Content-Type":"application/json"
+    },
+
+    body:JSON.stringify({
+
+      type:"config",
+
+      userId,
+
+      novelSpreadsheetId:
+        config.novelSpreadsheetId,
+
+      reviewSpreadsheetId:
+        config.reviewSpreadsheetId,
+
+      sheetName:
+        currentSheetName,
+
+      currentIndex:i
+
     })
   });
 }
 
 /* NEXT */
-function next(){
+function nextSentence(){
 
   if(i < data.length - 1){
 
