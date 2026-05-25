@@ -23,7 +23,7 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
 
 <!-- LOGIN -->
 <div class="card">
-  <div class="g_id_signin"></div>
+  <div id="loginBtn"></div>
 </div>
 
 <!-- SETUP -->
@@ -33,7 +33,7 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
   <button onclick="saveConfig()">START</button>
 </div>
 
-<!-- NOVEL SELECT -->
+<!-- SELECT -->
 <div id="select" class="card hidden">
   <select id="novelList"></select>
   <button onclick="openNovel()">OPEN</button>
@@ -55,10 +55,15 @@ let config = {};
 let data = [];
 let index = 0;
 
-/* -------------------------
-   Google Login Init（重要）
-------------------------- */
-window.onload = () => {
+/* =========================
+   Google Login 安定初期化
+========================= */
+function initGoogle(){
+
+  if(!window.google || !google.accounts){
+    setTimeout(initGoogle, 50);
+    return;
+  }
 
   google.accounts.id.initialize({
     client_id: "9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com",
@@ -66,16 +71,16 @@ window.onload = () => {
   });
 
   google.accounts.id.renderButton(
-    document.querySelector(".g_id_signin"),
+    document.getElementById("loginBtn"),
     { theme: "outline", size: "large" }
   );
+}
 
-  google.accounts.id.prompt();
-};
+window.addEventListener("load", initGoogle);
 
-/* -------------------------
+/* =========================
    LOGIN
-------------------------- */
+========================= */
 function handleLogin(res){
 
   const payload =
@@ -83,58 +88,24 @@ function handleLogin(res){
 
   userId = payload.sub || payload.email;
 
-  restore();
+  document.getElementById("setup")
+    .classList.remove("hidden");
 }
 
-/* -------------------------
-   RESTORE
-------------------------- */
-async function restore(){
-
-  const url =
-    `${API_URL}?mode=restore`
-    + `&userId=${userId}`
-    + `&reviewSpreadsheetId=`;
-
-  const r = await jsonp(url);
-
-  if(r.status === "new_user"){
-
-    document.getElementById("setup")
-      .classList.remove("hidden");
-
-    return;
-  }
-
-  config = r;
-
-  loadNovelList();
-}
-
-/* -------------------------
-   SAVE CONFIG
-------------------------- */
+/* =========================
+   CONFIG → LIST
+========================= */
 async function saveConfig(){
 
-  config.novelSpreadsheetId =
+  config.novelId =
     document.getElementById("novelId").value.trim();
 
-  config.reviewSpreadsheetId =
+  config.reviewId =
     document.getElementById("reviewId").value.trim();
 
-  loadNovelList();
-}
-
-/* -------------------------
-   NOVEL LIST
-------------------------- */
-async function loadNovelList(){
-
-  const url =
-    `${API_URL}?mode=getNovelList`
-    + `&spreadsheetId=${config.novelSpreadsheetId}`;
-
-  const list = await jsonp(url);
+  const list = await jsonp(
+    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
+  );
 
   const sel = document.getElementById("novelList");
   sel.innerHTML = "";
@@ -150,20 +121,19 @@ async function loadNovelList(){
   document.getElementById("select").classList.remove("hidden");
 }
 
-/* -------------------------
+/* =========================
    OPEN NOVEL
-------------------------- */
+========================= */
 async function openNovel(){
 
   const sheetName =
     document.getElementById("novelList").value;
 
-  const url =
+  data = await jsonp(
     `${API_URL}?mode=loadNovel`
-    + `&spreadsheetId=${config.novelSpreadsheetId}`
-    + `&sheetName=${sheetName}`;
-
-  data = await jsonp(url);
+    + `&spreadsheetId=${config.novelId}`
+    + `&sheetName=${sheetName}`
+  );
 
   document.getElementById("select").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
@@ -172,40 +142,32 @@ async function openNovel(){
   render();
 }
 
-/* -------------------------
+/* =========================
    RENDER
-------------------------- */
+========================= */
 function render(){
 
   document.getElementById("current").innerText =
     data[index]?.english || "END";
 }
 
-/* -------------------------
+/* =========================
    JSONP
-------------------------- */
+========================= */
 function jsonp(url){
 
   return new Promise(resolve => {
 
-    const cb =
-      "cb_" + Math.random().toString(36).slice(2);
+    const cb = "cb_" + Math.random().toString(36).slice(2);
 
-    window[cb] = function(res){
-
+    window[cb] = (res) => {
       delete window[cb];
-
       document.body.removeChild(script);
-
       resolve(res);
     };
 
-    const script =
-      document.createElement("script");
-
-    script.src =
-      url + "&callback=" + cb;
-
+    const script = document.createElement("script");
+    script.src = url + "&callback=" + cb;
     document.body.appendChild(script);
   });
 }
