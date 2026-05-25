@@ -4,15 +4,14 @@
 <meta charset="UTF-8">
 <title>Learning App</title>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 
 <style>
 body{font-family:Arial;margin:0;background:#f4f6f8;}
 .wrap{max-width:900px;margin:auto;padding:16px;}
 .card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;}
-textarea,select,button{width:100%;box-sizing:border-box;margin-top:10px;padding:10px;}
-button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
 .hidden{display:none;}
+button,textarea,select{width:100%;padding:10px;margin-top:10px;}
 .current{font-size:22px;font-weight:bold;}
 </style>
 </head>
@@ -21,27 +20,29 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
 
 <div class="wrap">
 
-<!-- LOGIN -->
 <div class="card">
   <div id="loginBtn"></div>
 </div>
 
-<!-- SETUP -->
 <div id="setup" class="card hidden">
   <textarea id="novelId" placeholder="NovelLibrary ID"></textarea>
   <textarea id="reviewId" placeholder="ReviewDB ID"></textarea>
   <button onclick="saveConfig()">START</button>
 </div>
 
-<!-- SELECT -->
 <div id="select" class="card hidden">
   <select id="novelList"></select>
   <button onclick="openNovel()">OPEN</button>
 </div>
 
-<!-- APP -->
 <div id="app" class="card hidden">
   <div id="current" class="current"></div>
+
+  <textarea id="answer" placeholder="answer"></textarea>
+  <textarea id="memo" placeholder="memo"></textarea>
+
+  <button onclick="save()">SAVE</button>
+  <button onclick="next()">NEXT</button>
 </div>
 
 </div>
@@ -50,46 +51,43 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
-let userId = "";
-let config = {};
-let data = [];
-let index = 0;
+let userId="";
+let config={};
+let data=[];
+let i=0;
 
 /* =========================
-   Google Login 安定初期化
+   SAFE LOGIN INIT
 ========================= */
-function initGoogle(){
+function init(){
 
   if(!window.google || !google.accounts){
-    setTimeout(initGoogle, 50);
+    setTimeout(init,50);
     return;
   }
 
   google.accounts.id.initialize({
-    client_id: "9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com",
-    callback: handleLogin
+    client_id:"9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com",
+    callback:handleLogin
   });
 
   google.accounts.id.renderButton(
     document.getElementById("loginBtn"),
-    { theme: "outline", size: "large" }
+    {theme:"outline",size:"large"}
   );
 }
 
-window.addEventListener("load", initGoogle);
+window.addEventListener("load",init);
 
 /* =========================
    LOGIN
 ========================= */
 function handleLogin(res){
 
-  const payload =
-    JSON.parse(atob(res.credential.split('.')[1]));
+  const p=JSON.parse(atob(res.credential.split('.')[1]));
+  userId=p.sub||p.email;
 
-  userId = payload.sub || payload.email;
-
-  document.getElementById("setup")
-    .classList.remove("hidden");
+  document.getElementById("setup").classList.remove("hidden");
 }
 
 /* =========================
@@ -97,24 +95,21 @@ function handleLogin(res){
 ========================= */
 async function saveConfig(){
 
-  config.novelId =
-    document.getElementById("novelId").value.trim();
+  config.novelId=document.getElementById("novelId").value.trim();
+  config.reviewId=document.getElementById("reviewId").value.trim();
 
-  config.reviewId =
-    document.getElementById("reviewId").value.trim();
-
-  const list = await jsonp(
+  const list=await jsonp(
     `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
   );
 
-  const sel = document.getElementById("novelList");
-  sel.innerHTML = "";
+  const sel=document.getElementById("novelList");
+  sel.innerHTML="";
 
   list.forEach(n=>{
-    const opt = document.createElement("option");
-    opt.value = n.name;
-    opt.textContent = n.name;
-    sel.appendChild(opt);
+    const o=document.createElement("option");
+    o.value=n.name;
+    o.textContent=n.name;
+    sel.appendChild(o);
   });
 
   document.getElementById("setup").classList.add("hidden");
@@ -126,29 +121,64 @@ async function saveConfig(){
 ========================= */
 async function openNovel(){
 
-  const sheetName =
-    document.getElementById("novelList").value;
+  const sheet=document.getElementById("novelList").value;
 
-  data = await jsonp(
+  data=await jsonp(
     `${API_URL}?mode=loadNovel`
-    + `&spreadsheetId=${config.novelId}`
-    + `&sheetName=${sheetName}`
+    +`&spreadsheetId=${config.novelId}`
+    +`&sheetName=${sheet}`
   );
+
+  i=0;
 
   document.getElementById("select").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
 
-  index = 0;
   render();
+}
+
+/* =========================
+   SAVE (LearningLog)
+========================= */
+async function save(){
+
+  const payload={
+    userId,
+    novelId:config.novelId,
+    sentenceId:i,
+    chapter:data[i]?.chapter,
+    english:data[i]?.english,
+    answer:document.getElementById("answer").value,
+    memo:document.getElementById("memo").value,
+    time:new Date().toISOString(),
+    currentIndex:i,
+    novelSpreadsheetId:config.novelId,
+    reviewSpreadsheetId:config.reviewId
+  };
+
+  await jsonp(
+    `${API_URL}?mode=save`
+    +`&reviewSpreadsheetId=${config.reviewId}`
+    +`&data=${encodeURIComponent(JSON.stringify(payload))}`
+  );
+}
+
+/* =========================
+   NEXT
+========================= */
+function next(){
+  if(i < data.length-1){
+    i++;
+    render();
+  }
 }
 
 /* =========================
    RENDER
 ========================= */
 function render(){
-
   document.getElementById("current").innerText =
-    data[index]?.english || "END";
+    data[i]?.english || "END";
 }
 
 /* =========================
@@ -156,19 +186,19 @@ function render(){
 ========================= */
 function jsonp(url){
 
-  return new Promise(resolve => {
+  return new Promise(res=>{
 
-    const cb = "cb_" + Math.random().toString(36).slice(2);
+    const cb="cb_"+Math.random().toString(36).slice(2);
 
-    window[cb] = (res) => {
+    window[cb]=r=>{
       delete window[cb];
-      document.body.removeChild(script);
-      resolve(res);
+      document.body.removeChild(s);
+      res(r);
     };
 
-    const script = document.createElement("script");
-    script.src = url + "&callback=" + cb;
-    document.body.appendChild(script);
+    const s=document.createElement("script");
+    s.src=url+"&callback="+cb;
+    document.body.appendChild(s);
   });
 }
 
