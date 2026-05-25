@@ -7,7 +7,6 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
-
 body{
   font-family:Arial;
   margin:0;
@@ -28,86 +27,32 @@ body{
   box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
-.status{
-  font-size:12px;
-  color:#888;
-  margin-bottom:6px;
-}
-
-.current{
-  font-size:22px;
-  font-weight:bold;
-}
-
-.prev,.nextText{
-  color:#666;
-  white-space:pre-wrap;
-  font-size:14px;
-}
-
-textarea{
+textarea,select,button{
   width:100%;
-  height:70px;
-  margin-top:8px;
-  padding:10px;
   box-sizing:border-box;
-}
-
-select{
-  width:100%;
-  padding:10px;
   margin-top:10px;
-  box-sizing:border-box;
+  padding:10px;
 }
 
 button{
-  padding:10px 14px;
   border:none;
   border-radius:8px;
-  cursor:pointer;
-  margin-top:10px;
-}
-
-.primary{
   background:#4CAF50;
   color:#fff;
 }
 
-.nextBtn{
-  background:#2196F3;
-  color:#fff;
+.current{
+  font-size:24px;
+  font-weight:bold;
 }
-
-@media (min-width:768px){
-
-  .current{
-    font-size:28px;
-  }
-
-  textarea{
-    height:90px;
-  }
-}
-
-@media (max-width:767px){
-
-  button{
-    width:100%;
-  }
-}
-
 </style>
-
 </head>
 
 <body>
 
 <div class="wrap">
 
-<!-- LOGIN -->
 <div class="card">
-
-  <div class="status">Login</div>
 
   <div id="g_id_onload"
        data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
@@ -118,12 +63,9 @@ button{
 
 </div>
 
-<!-- SETUP -->
 <div id="setup"
      class="card"
      style="display:none">
-
-  <div class="status">初回設定</div>
 
   <textarea id="novelId"
     placeholder="NovelLibrary Spreadsheet ID"></textarea>
@@ -131,85 +73,30 @@ button{
   <textarea id="reviewId"
     placeholder="ReviewDB Spreadsheet ID"></textarea>
 
-  <button class="primary"
-    onclick="saveSetup()">
-
+  <button onclick="saveSetup()">
     START
-
   </button>
 
 </div>
 
-<!-- NOVEL SELECT -->
-<div id="novelSelectWrap"
+<div id="novelWrap"
      class="card"
      style="display:none">
 
-  <div class="status">小説選択</div>
-
   <select id="novelSelect"></select>
 
-  <button class="primary"
-    onclick="selectNovel()">
-
-    SELECT NOVEL
-
+  <button onclick="loadSelectedNovel()">
+    OPEN NOVEL
   </button>
 
 </div>
 
-<!-- APP -->
 <div id="app"
+     class="card"
      style="display:none">
 
-  <div class="card">
-
-    <div class="status">Prev</div>
-
-    <div id="prev"
-      class="prev"></div>
-
-  </div>
-
-  <div class="card">
-
-    <div class="status">Current</div>
-
-    <div id="current"
-      class="current"></div>
-
-  </div>
-
-  <div class="card">
-
-    <div class="status">Next</div>
-
-    <div id="next"
-      class="nextText"></div>
-
-  </div>
-
-  <div class="card">
-
-    <textarea id="answer"></textarea>
-
-    <textarea id="memo"></textarea>
-
-    <button class="primary"
-      onclick="save()">
-
-      SAVE
-
-    </button>
-
-    <button class="nextBtn"
-      onclick="nextSentence()">
-
-      NEXT
-
-    </button>
-
-  </div>
+  <div id="current"
+       class="current"></div>
 
 </div>
 
@@ -220,208 +107,73 @@ button{
 const API_URL =
 "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
-let userId = "";
+let config = {};
 
-let config = {
-  novelSpreadsheetId:"",
-  reviewSpreadsheetId:""
-};
+let novels = [];
 
-let currentSheetName = "";
-
-let data = [];
-
-let i = 0;
+let novelData = [];
 
 /* LOGIN */
-function handleCredentialResponse(res){
+function handleCredentialResponse(){
 
-  const payload =
-    JSON.parse(
-      atob(
-        res.credential.split('.')[1]
-      )
-    );
-
-  userId = payload.email;
-
-  restore();
+  document.getElementById("setup")
+    .style.display = "block";
 }
 
-/* RESTORE */
-async function restore(){
+/* START */
+async function saveSetup(){
 
   try{
 
+    const novelId =
+      document.getElementById("novelId")
+        .value
+        .trim();
+
+    const reviewId =
+      document.getElementById("reviewId")
+        .value
+        .trim();
+
+    if(!novelId || !reviewId){
+
+      alert("ID入力");
+
+      return;
+    }
+
+    config.novelSpreadsheetId = novelId;
+    config.reviewSpreadsheetId = reviewId;
+
+    const url =
+      API_URL
+      + "?mode=getNovelList"
+      + "&spreadsheetId="
+      + encodeURIComponent(novelId);
+
     const r =
-      await fetch(
-        `${API_URL}?mode=restore&userId=${userId}`
-      );
+      await fetch(url);
 
     const j =
       await r.json();
 
     console.log(j);
 
-    if(
-      j.status === "new_user" ||
-      j.status === "error" ||
-      !j.status
-    ){
+    if(j.status === "error"){
 
-      document.getElementById("setup")
-        .style.display = "block";
-
-      document.getElementById("novelSelectWrap")
-        .style.display = "none";
-
-      document.getElementById("app")
-        .style.display = "none";
+      alert(j.message);
 
       return;
     }
 
-    config.novelSpreadsheetId =
-      j.novelSpreadsheetId || "";
-
-    config.reviewSpreadsheetId =
-      j.reviewSpreadsheetId || "";
-
-    currentSheetName =
-      j.sheetName || "";
-
-    if(
-      !config.novelSpreadsheetId ||
-      !config.reviewSpreadsheetId
-    ){
-
-      document.getElementById("setup")
-        .style.display = "block";
-
-      return;
-    }
-
-    if(!currentSheetName){
-
-      loadNovelList();
-
-      return;
-    }
-
-    loadNovel(
-      currentSheetName,
-      j.currentIndex || 0
-    );
-
-  }catch(err){
-
-    console.error(err);
-
-    document.getElementById("setup")
-      .style.display = "block";
-  }
-}
-
-/* SAVE SETUP */
-async function saveSetup(){
-
-  config.novelSpreadsheetId =
-    document.getElementById("novelId")
-      .value.trim();
-
-  config.reviewSpreadsheetId =
-    document.getElementById("reviewId")
-      .value.trim();
-
-  if(
-    !config.novelSpreadsheetId ||
-    !config.reviewSpreadsheetId
-  ){
-
-    alert("IDを入力してください");
-
-    return;
-  }
-
-  await fetch(API_URL,{
-
-    method:"POST",
-
-    headers:{
-      "Content-Type":"application/json"
-    },
-
-    body:JSON.stringify({
-
-      type:"config",
-
-      userId,
-
-      novelSpreadsheetId:
-        config.novelSpreadsheetId,
-
-      reviewSpreadsheetId:
-        config.reviewSpreadsheetId
-
-    })
-  });
-
-  loadNovelList();
-}
-
-/* LOAD NOVEL LIST */
-async function loadNovelList(){
-
-  try{
-
-    document.getElementById("setup")
-      .style.display = "none";
-
-    document.getElementById("novelSelectWrap")
-      .style.display = "block";
-
-    const r =
-      await fetch(
-        `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelSpreadsheetId}`
-      );
-
-    const list =
-      await r.json();
-
-    console.log(list);
+    novels = j;
 
     const sel =
       document.getElementById("novelSelect");
 
     sel.innerHTML = "";
 
-    if(
-      list.status === "error" ||
-      !Array.isArray(list)
-    ){
-
-      alert(
-        "Spreadsheet取得失敗\n\n" +
-        (list.message || "")
-      );
-
-      document.getElementById("setup")
-        .style.display = "block";
-
-      document.getElementById("novelSelectWrap")
-        .style.display = "none";
-
-      return;
-    }
-
-    if(list.length === 0){
-
-      alert("シートが存在しません");
-
-      return;
-    }
-
-    list.forEach(n=>{
+    novels.forEach(n=>{
 
       const op =
         document.createElement("option");
@@ -431,207 +183,71 @@ async function loadNovelList(){
       op.textContent = n.name;
 
       sel.appendChild(op);
-
     });
+
+    document.getElementById("setup")
+      .style.display = "none";
+
+    document.getElementById("novelWrap")
+      .style.display = "block";
 
   }catch(err){
 
     console.error(err);
 
-    alert("小説一覧取得失敗");
+    alert(String(err));
   }
 }
 
-/* SELECT NOVEL */
-async function selectNovel(){
-
-  currentSheetName =
-    document.getElementById("novelSelect")
-      .value;
-
-  await fetch(API_URL,{
-
-    method:"POST",
-
-    headers:{
-      "Content-Type":"application/json"
-    },
-
-    body:JSON.stringify({
-
-      type:"config",
-
-      userId,
-
-      novelSpreadsheetId:
-        config.novelSpreadsheetId,
-
-      reviewSpreadsheetId:
-        config.reviewSpreadsheetId,
-
-      sheetName:
-        currentSheetName,
-
-      currentIndex:0
-
-    })
-  });
-
-  document.getElementById("novelSelectWrap")
-    .style.display = "none";
-
-  loadNovel(currentSheetName,0);
-}
-
 /* LOAD NOVEL */
-async function loadNovel(sheetName,start){
+async function loadSelectedNovel(){
 
   try{
 
-    const r =
-      await fetch(
-        `${API_URL}?mode=loadNovel&spreadsheetId=${config.novelSpreadsheetId}&sheetName=${sheetName}`
-      );
+    const sheetName =
+      document.getElementById("novelSelect")
+        .value;
 
-    data =
+    const url =
+      API_URL
+      + "?mode=loadNovel"
+      + "&spreadsheetId="
+      + encodeURIComponent(config.novelSpreadsheetId)
+      + "&sheetName="
+      + encodeURIComponent(sheetName);
+
+    const r =
+      await fetch(url);
+
+    const j =
       await r.json();
 
-    if(
-      data.status === "error" ||
-      !Array.isArray(data)
-    ){
+    console.log(j);
 
-      alert(
-        "小説読み込み失敗\n\n" +
-        (data.message || "")
-      );
+    if(j.status === "error"){
+
+      alert(j.message);
 
       return;
     }
 
-    i = start;
+    novelData = j;
+
+    document.getElementById("novelWrap")
+      .style.display = "none";
 
     document.getElementById("app")
       .style.display = "block";
 
-    render();
+    document.getElementById("current")
+      .innerText =
+        novelData[0]?.english || "NO DATA";
 
   }catch(err){
 
     console.error(err);
 
-    alert("小説読み込み失敗");
-  }
-}
-
-/* RENDER */
-function render(){
-
-  if(!data[i]) return;
-
-  document.getElementById("current")
-    .innerText =
-      data[i].english;
-
-  document.getElementById("prev")
-    .innerText =
-
-      (data[i-1]?.english || "")
-      + "\n" +
-      (data[i-2]?.english || "");
-
-  document.getElementById("next")
-    .innerText =
-
-      (data[i+1]?.english || "")
-      + "\n" +
-      (data[i+2]?.english || "");
-}
-
-/* SAVE */
-async function save(){
-
-  const d =
-    data[i];
-
-  await fetch(API_URL,{
-
-    method:"POST",
-
-    headers:{
-      "Content-Type":"application/json"
-    },
-
-    body:JSON.stringify({
-
-      userId,
-
-      novelSpreadsheetId:
-        config.novelSpreadsheetId,
-
-      reviewSpreadsheetId:
-        config.reviewSpreadsheetId,
-
-      sheetName:
-        currentSheetName,
-
-      sentenceId:i,
-
-      chapter:d.chapter,
-
-      english:d.english,
-
-      answer:
-        answer.value,
-
-      memo:
-        memo.value,
-
-      time:
-        new Date().toISOString(),
-
-      currentIndex:i
-
-    })
-  });
-
-  await fetch(API_URL,{
-
-    method:"POST",
-
-    headers:{
-      "Content-Type":"application/json"
-    },
-
-    body:JSON.stringify({
-
-      type:"config",
-
-      userId,
-
-      novelSpreadsheetId:
-        config.novelSpreadsheetId,
-
-      reviewSpreadsheetId:
-        config.reviewSpreadsheetId,
-
-      sheetName:
-        currentSheetName,
-
-      currentIndex:i
-
-    })
-  });
-}
-
-/* NEXT */
-function nextSentence(){
-
-  if(i < data.length - 1){
-
-    i++;
-
-    render();
+    alert(String(err));
   }
 }
 
