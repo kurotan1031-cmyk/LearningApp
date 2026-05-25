@@ -23,10 +23,6 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
 
 <!-- LOGIN -->
 <div class="card">
-  <div id="g_id_onload"
-       data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
-       data-callback="handleLogin">
-  </div>
   <div class="g_id_signin"></div>
 </div>
 
@@ -37,7 +33,7 @@ button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
   <button onclick="saveConfig()">START</button>
 </div>
 
-<!-- SELECT -->
+<!-- NOVEL SELECT -->
 <div id="select" class="card hidden">
   <select id="novelList"></select>
   <button onclick="openNovel()">OPEN</button>
@@ -60,27 +56,22 @@ let data = [];
 let index = 0;
 
 /* -------------------------
-   JSONP共通関数
+   Google Login Init（重要）
 ------------------------- */
-function jsonp(url){
+window.onload = () => {
 
-  return new Promise((resolve)=>{
-
-    const cb = "cb_" + Math.random().toString(36).substr(2,9);
-
-    window[cb] = function(res){
-      delete window[cb];
-      document.body.removeChild(script);
-      resolve(res);
-    };
-
-    const script = document.createElement("script");
-
-    script.src = url + "&callback=" + cb;
-
-    document.body.appendChild(script);
+  google.accounts.id.initialize({
+    client_id: "9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com",
+    callback: handleLogin
   });
-}
+
+  google.accounts.id.renderButton(
+    document.querySelector(".g_id_signin"),
+    { theme: "outline", size: "large" }
+  );
+
+  google.accounts.id.prompt();
+};
 
 /* -------------------------
    LOGIN
@@ -92,23 +83,56 @@ function handleLogin(res){
 
   userId = payload.sub || payload.email;
 
-  document.getElementById("setup")
-    .classList.remove("hidden");
+  restore();
 }
 
 /* -------------------------
-   SAVE CONFIG + LIST
+   RESTORE
+------------------------- */
+async function restore(){
+
+  const url =
+    `${API_URL}?mode=restore`
+    + `&userId=${userId}`
+    + `&reviewSpreadsheetId=`;
+
+  const r = await jsonp(url);
+
+  if(r.status === "new_user"){
+
+    document.getElementById("setup")
+      .classList.remove("hidden");
+
+    return;
+  }
+
+  config = r;
+
+  loadNovelList();
+}
+
+/* -------------------------
+   SAVE CONFIG
 ------------------------- */
 async function saveConfig(){
 
-  config.novelId =
+  config.novelSpreadsheetId =
     document.getElementById("novelId").value.trim();
 
-  config.reviewId =
+  config.reviewSpreadsheetId =
     document.getElementById("reviewId").value.trim();
 
+  loadNovelList();
+}
+
+/* -------------------------
+   NOVEL LIST
+------------------------- */
+async function loadNovelList(){
+
   const url =
-    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`;
+    `${API_URL}?mode=getNovelList`
+    + `&spreadsheetId=${config.novelSpreadsheetId}`;
 
   const list = await jsonp(url);
 
@@ -136,7 +160,7 @@ async function openNovel(){
 
   const url =
     `${API_URL}?mode=loadNovel`
-    + `&spreadsheetId=${config.novelId}`
+    + `&spreadsheetId=${config.novelSpreadsheetId}`
     + `&sheetName=${sheetName}`;
 
   data = await jsonp(url);
@@ -155,6 +179,35 @@ function render(){
 
   document.getElementById("current").innerText =
     data[index]?.english || "END";
+}
+
+/* -------------------------
+   JSONP
+------------------------- */
+function jsonp(url){
+
+  return new Promise(resolve => {
+
+    const cb =
+      "cb_" + Math.random().toString(36).slice(2);
+
+    window[cb] = function(res){
+
+      delete window[cb];
+
+      document.body.removeChild(script);
+
+      resolve(res);
+    };
+
+    const script =
+      document.createElement("script");
+
+    script.src =
+      url + "&callback=" + cb;
+
+    document.body.appendChild(script);
+  });
 }
 
 </script>
