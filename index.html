@@ -7,248 +7,142 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
-body{
-  font-family:Arial;
-  margin:0;
-  background:#f4f6f8;
-}
-
-.wrap{
-  max-width:900px;
-  margin:auto;
-  padding:16px;
-}
-
-.card{
-  background:#fff;
-  padding:14px;
-  border-radius:12px;
-  margin-bottom:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-textarea,select,button{
-  width:100%;
-  box-sizing:border-box;
-  margin-top:10px;
-  padding:10px;
-}
-
-button{
-  border:none;
-  border-radius:8px;
-  background:#4CAF50;
-  color:#fff;
-}
-
-.current{
-  font-size:24px;
-  font-weight:bold;
-}
+body{font-family:Arial;margin:0;background:#f4f6f8;}
+.wrap{max-width:900px;margin:auto;padding:16px;}
+.card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;}
+textarea,select,button{width:100%;box-sizing:border-box;margin-top:10px;padding:10px;}
+button{border:none;border-radius:8px;background:#4CAF50;color:#fff;}
+.hidden{display:none;}
+.current{font-size:22px;font-weight:bold;}
 </style>
+
 </head>
 
 <body>
 
 <div class="wrap">
 
+<!-- LOGIN -->
 <div class="card">
-
   <div id="g_id_onload"
        data-client_id="9811975665-aahgiu80dqlpb841pt6u7m82en6eqcri.apps.googleusercontent.com"
-       data-callback="handleCredentialResponse">
+       data-callback="handleLogin">
   </div>
-
   <div class="g_id_signin"></div>
-
 </div>
 
-<div id="setup"
-     class="card"
-     style="display:none">
-
-  <textarea id="novelId"
-    placeholder="NovelLibrary Spreadsheet ID"></textarea>
-
-  <textarea id="reviewId"
-    placeholder="ReviewDB Spreadsheet ID"></textarea>
-
-  <button onclick="saveSetup()">
-    START
-  </button>
-
+<!-- SETUP -->
+<div id="setup" class="card hidden">
+  <textarea id="novelId" placeholder="NovelLibrary ID"></textarea>
+  <textarea id="reviewId" placeholder="ReviewDB ID"></textarea>
+  <button onclick="saveConfig()">START</button>
 </div>
 
-<div id="novelWrap"
-     class="card"
-     style="display:none">
-
-  <select id="novelSelect"></select>
-
-  <button onclick="loadSelectedNovel()">
-    OPEN NOVEL
-  </button>
-
+<!-- NOVEL SELECT -->
+<div id="select" class="card hidden">
+  <select id="novelList"></select>
+  <button onclick="openNovel()">OPEN</button>
 </div>
 
-<div id="app"
-     class="card"
-     style="display:none">
-
-  <div id="current"
-       class="current"></div>
-
-</div>
-
+<!-- APP -->
+<div id="app" class="card hidden">
+  <div id="current" class="current"></div>
 </div>
 
 <script>
 
-const API_URL =
-"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
+let userId = "";
 let config = {};
-
-let novels = [];
-
-let novelData = [];
+let data = [];
+let currentIndex = 0;
 
 /* LOGIN */
-function handleCredentialResponse(){
+function handleLogin(res){
 
-  document.getElementById("setup")
-    .style.display = "block";
+  const payload = JSON.parse(atob(res.credential.split('.')[1]));
+  userId = payload.sub || payload.email;
+
+  restore();
 }
 
-/* START */
-async function saveSetup(){
+/* RESTORE */
+async function restore(){
 
-  try{
+  const r = await fetch(
+    `${API_URL}?mode=restoreConfig&userId=${userId}&reviewSpreadsheetId=`
+  );
 
-    const novelId =
-      document.getElementById("novelId")
-        .value
-        .trim();
+  const j = await r.json();
 
-    const reviewId =
-      document.getElementById("reviewId")
-        .value
-        .trim();
-
-    if(!novelId || !reviewId){
-
-      alert("ID入力");
-
-      return;
-    }
-
-    config.novelSpreadsheetId = novelId;
-    config.reviewSpreadsheetId = reviewId;
-
-    const url =
-      API_URL
-      + "?mode=getNovelList"
-      + "&spreadsheetId="
-      + encodeURIComponent(novelId);
-
-    const r =
-      await fetch(url);
-
-    const j =
-      await r.json();
-
-    console.log(j);
-
-    if(j.status === "error"){
-
-      alert(j.message);
-
-      return;
-    }
-
-    novels = j;
-
-    const sel =
-      document.getElementById("novelSelect");
-
-    sel.innerHTML = "";
-
-    novels.forEach(n=>{
-
-      const op =
-        document.createElement("option");
-
-      op.value = n.name;
-
-      op.textContent = n.name;
-
-      sel.appendChild(op);
-    });
-
-    document.getElementById("setup")
-      .style.display = "none";
-
-    document.getElementById("novelWrap")
-      .style.display = "block";
-
-  }catch(err){
-
-    console.error(err);
-
-    alert(String(err));
+  if(j.status !== "ok"){
+    document.getElementById("setup").classList.remove("hidden");
+    return;
   }
+
+  config = j;
+
+  loadNovelList();
 }
 
-/* LOAD NOVEL */
-async function loadSelectedNovel(){
+/* SAVE CONFIG */
+async function saveConfig(){
 
-  try{
+  config.novelSpreadsheetId =
+    document.getElementById("novelId").value.trim();
 
-    const sheetName =
-      document.getElementById("novelSelect")
-        .value;
+  config.reviewSpreadsheetId =
+    document.getElementById("reviewId").value.trim();
 
-    const url =
-      API_URL
-      + "?mode=loadNovel"
-      + "&spreadsheetId="
-      + encodeURIComponent(config.novelSpreadsheetId)
-      + "&sheetName="
-      + encodeURIComponent(sheetName);
+  loadNovelList();
+}
 
-    const r =
-      await fetch(url);
+/* NOVEL LIST */
+async function loadNovelList(){
 
-    const j =
-      await r.json();
+  const r = await fetch(
+    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelSpreadsheetId}`
+  );
 
-    console.log(j);
+  const list = await r.json();
 
-    if(j.status === "error"){
+  const sel = document.getElementById("novelList");
+  sel.innerHTML = "";
 
-      alert(j.message);
+  list.forEach(n=>{
+    const opt = document.createElement("option");
+    opt.value = n.name;
+    opt.textContent = n.name;
+    sel.appendChild(opt);
+  });
 
-      return;
-    }
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("select").classList.remove("hidden");
+}
 
-    novelData = j;
+/* OPEN NOVEL */
+async function openNovel(){
 
-    document.getElementById("novelWrap")
-      .style.display = "none";
+  const sheetName = document.getElementById("novelList").value;
 
-    document.getElementById("app")
-      .style.display = "block";
+  const r = await fetch(
+    `${API_URL}?mode=loadNovel&spreadsheetId=${config.novelSpreadsheetId}&sheetName=${sheetName}`
+  );
 
-    document.getElementById("current")
-      .innerText =
-        novelData[0]?.english || "NO DATA";
+  data = await r.json();
 
-  }catch(err){
+  document.getElementById("select").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
 
-    console.error(err);
+  currentIndex = 0;
+  render();
+}
 
-    alert(String(err));
-  }
+/* RENDER */
+function render(){
+  document.getElementById("current").innerText =
+    data[currentIndex]?.english || "END";
 }
 
 </script>
