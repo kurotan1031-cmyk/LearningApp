@@ -2,17 +2,10 @@
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
-let userId = "";
-let config = {};
-let data = [];
-let i = 0;
-
-/* =========================
-   SAFE ELEMENT
-========================= */
-function el(id){
-  return document.getElementById(id);
-}
+let userId="";
+let config={};
+let data=[];
+let i=0;
 
 /* =========================
    LOGIN INIT
@@ -20,14 +13,7 @@ function el(id){
 function init(){
 
   if(!window.google || !google.accounts){
-    setTimeout(init,100);
-    return;
-  }
-
-  const btn = el("loginBtn");
-
-  if(!btn){
-    console.error("loginBtn missing");
+    setTimeout(init,50);
     return;
   }
 
@@ -36,10 +22,10 @@ function init(){
     callback:handleLogin
   });
 
-  google.accounts.id.renderButton(btn,{
-    theme:"outline",
-    size:"large"
-  });
+  google.accounts.id.renderButton(
+    document.getElementById("loginBtn"),
+    {theme:"outline",size:"large"}
+  );
 }
 
 window.addEventListener("load",init);
@@ -49,88 +35,31 @@ window.addEventListener("load",init);
 ========================= */
 async function handleLogin(res){
 
+  const p = JSON.parse(atob(res.credential.split('.')[1]));
+  userId = p.sub || p.email;
+
   try{
 
-    const p = JSON.parse(
-      atob(res.credential.split('.')[1])
+    const restoreData = await jsonp(
+      `${API_URL}?mode=restore`
+      +`&userId=${encodeURIComponent(userId)}`
     );
 
-    userId = p.sub || p.email;
+    /* 初回ユーザー */
+    if(restoreData.status === "new_user"){
 
-    const saved =
-      localStorage.getItem("learning_config");
+      document.getElementById("setup")
+        .classList.remove("hidden");
 
-    if(!saved){
-      showSetup();
       return;
     }
 
-    config = JSON.parse(saved);
-
-    const list = await jsonp(
-      `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
-    );
-
-    if(!Array.isArray(list)){
-      throw new Error("invalid list");
-    }
-
-    await loadNovelList(list);
-
-  }catch(err){
-
-    console.error(err);
-
-    localStorage.removeItem("learning_config");
-
-    showSetup();
-  }
-}
-
-/* =========================
-   SHOW SETUP
-========================= */
-function showSetup(){
-
-  const setup = el("setup");
-  const select = el("select");
-  const app = el("app");
-
-  if(setup){
-    setup.classList.remove("hidden");
-  }
-
-  if(select){
-    select.classList.add("hidden");
-  }
-
-  if(app){
-    app.classList.add("hidden");
-  }
-}
-
-/* =========================
-   SAVE CONFIG
-========================= */
-async function saveConfig(){
-
-  try{
-
+    /* 復元 */
     config.novelId =
-      el("novelId")?.value.trim();
+      restoreData.novelSpreadsheetId;
 
     config.reviewId =
-      el("reviewId")?.value.trim();
-
-    if(!config.novelId || !config.reviewId){
-      alert("Spreadsheet ID required");
-      return;
-    }
-
-    localStorage.setItem(
-      "learning_config",
-      JSON.stringify(config)
-    );
+      restoreData.reviewSpreadsheetId;
 
     await loadNovelList();
 
@@ -138,66 +67,72 @@ async function saveConfig(){
 
     console.error(err);
 
-    alert("saveConfig error");
+    document.getElementById("setup")
+      .classList.remove("hidden");
   }
+}
+
+/* =========================
+   CONFIG → LIST
+========================= */
+async function saveConfig(){
+
+  config.novelId =
+    document.getElementById("novelId")
+    .value.trim();
+
+  config.reviewId =
+    document.getElementById("reviewId")
+    .value.trim();
+
+  await loadNovelList();
 }
 
 /* =========================
    LOAD NOVEL LIST
 ========================= */
-async function loadNovelList(preloaded=null){
+async function loadNovelList(){
 
-  try{
+  const list = await jsonp(
+    `${API_URL}?mode=getNovelList`
+    +`&spreadsheetId=${config.novelId}`
+  );
 
-    const list = preloaded || await jsonp(
-      `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
-    );
+  const sel =
+    document.getElementById("novelList");
 
-    const sel = el("novelList");
+  sel.innerHTML = "";
 
-    if(!sel){
-      alert("novelList missing");
-      return;
-    }
+  list.forEach(n=>{
 
-    sel.innerHTML = "";
+    const o = document.createElement("option");
 
-    list.forEach(n=>{
+    o.value = n.name;
+    o.textContent = n.name;
 
-      const o = document.createElement("option");
+    sel.appendChild(o);
+  });
 
-      o.value = n.name;
-      o.textContent = n.name;
+  document.getElementById("setup")
+    .classList.add("hidden");
 
-      sel.appendChild(o);
-    });
-
-    el("setup")?.classList.add("hidden");
-
-    el("select")?.classList.remove("hidden");
-
-  }catch(err){
-
-    console.error(err);
-
-    alert("Spreadsheet ID error");
-
-    localStorage.removeItem("learning_config");
-
-    showSetup();
-  }
+  document.getElementById("select")
+    .classList.remove("hidden");
 }
 
 /* =========================
-   CHANGE CONFIG
+   SHOW SETUP
 ========================= */
-function changeConfig(){
+function showSetup(){
 
-  localStorage.removeItem("learning_config");
+  document.getElementById("setup")
+    .classList.remove("hidden");
 
-  config = {};
+  document.getElementById("select")
+    .classList.add("hidden");
 
-  showSetup();
+  document.getElementById("app")
+    .classList.add("hidden");
 }
 
 /* =========================
@@ -205,31 +140,24 @@ function changeConfig(){
 ========================= */
 async function openNovel(){
 
-  try{
+  const sheet =
+    document.getElementById("novelList").value;
 
-    const sheet =
-      el("novelList")?.value;
+  data = await jsonp(
+    `${API_URL}?mode=loadNovel`
+    +`&spreadsheetId=${config.novelId}`
+    +`&sheetName=${sheet}`
+  );
 
-    data = await jsonp(
-      `${API_URL}?mode=loadNovel`
-      +`&spreadsheetId=${config.novelId}`
-      +`&sheetName=${sheet}`
-    );
+  i = 0;
 
-    i = 0;
+  document.getElementById("select")
+    .classList.add("hidden");
 
-    el("select")?.classList.add("hidden");
+  document.getElementById("app")
+    .classList.remove("hidden");
 
-    el("app")?.classList.remove("hidden");
-
-    render();
-
-  }catch(err){
-
-    console.error(err);
-
-    alert("openNovel error");
-  }
+  render();
 }
 
 /* =========================
@@ -237,34 +165,27 @@ async function openNovel(){
 ========================= */
 async function save(){
 
-  try{
+  const payload = {
+    userId,
+    novelId: config.novelId,
+    sentenceId: i,
+    chapter: data[i]?.chapter,
+    english: data[i]?.english,
+    answer:
+      document.getElementById("answer").value,
+    memo:
+      document.getElementById("memo").value,
+    time: new Date().toISOString(),
+    currentIndex: i,
+    novelSpreadsheetId: config.novelId,
+    reviewSpreadsheetId: config.reviewId
+  };
 
-    const payload = {
-      userId,
-      novelId: config.novelId,
-      sentenceId: i,
-      chapter: data[i]?.chapter,
-      english: data[i]?.english,
-      answer: el("answer")?.value || "",
-      memo: el("memo")?.value || "",
-      time: new Date().toISOString(),
-      currentIndex: i,
-      novelSpreadsheetId: config.novelId,
-      reviewSpreadsheetId: config.reviewId
-    };
-
-    await jsonp(
-      `${API_URL}?mode=save`
-      +`&reviewSpreadsheetId=${config.reviewId}`
-      +`&data=${encodeURIComponent(JSON.stringify(payload))}`
-    );
-
-  }catch(err){
-
-    console.error(err);
-
-    alert("save error");
-  }
+  await jsonp(
+    `${API_URL}?mode=save`
+    +`&reviewSpreadsheetId=${config.reviewId}`
+    +`&data=${encodeURIComponent(JSON.stringify(payload))}`
+  );
 }
 
 /* =========================
@@ -291,42 +212,23 @@ function prev(){
 ========================= */
 function render(){
 
-  try{
+  const prevText =
+    data[i-1]?.english || "";
 
-    const prevEl = el("prev");
-    const currEl = el("current");
-    const nextEl = el("next");
+  const currText =
+    data[i]?.english || "";
 
-    if(!currEl){
-      console.error("current missing");
-      return;
-    }
+  const nextText =
+    data[i+1]?.english || "";
 
-    const prevText =
-      data[i-1]?.english || "";
+  document.getElementById("prev")
+    .innerText = prevText;
 
-    const currText =
-      data[i]?.english || "";
+  document.getElementById("current")
+    .innerText = currText || "END";
 
-    const nextText =
-      data[i+1]?.english || "";
-
-    if(prevEl){
-      prevEl.innerText = prevText;
-    }
-
-    currEl.innerText = currText || "END";
-
-    if(nextEl){
-      nextEl.innerText = nextText;
-    }
-
-  }catch(err){
-
-    console.error(err);
-
-    alert("render error");
-  }
+  document.getElementById("next")
+    .innerText = nextText;
 }
 
 /* =========================
@@ -334,66 +236,22 @@ function render(){
 ========================= */
 function jsonp(url){
 
-  return new Promise((resolve,reject)=>{
+  return new Promise(res=>{
 
     const cb =
       "cb_" + Math.random().toString(36).slice(2);
 
-    let finished = false;
-
-    const timeout = setTimeout(()=>{
-
-      if(finished){
-        return;
-      }
-
-      finished = true;
-
-      delete window[cb];
-
-      if(document.body.contains(s)){
-        document.body.removeChild(s);
-      }
-
-      reject(new Error("timeout"));
-
-    },10000);
-
     window[cb] = r=>{
 
-      if(finished){
-        return;
-      }
-
-      finished = true;
-
-      clearTimeout(timeout);
-
       delete window[cb];
 
-      if(document.body.contains(s)){
-        document.body.removeChild(s);
-      }
+      document.body.removeChild(s);
 
-      resolve(r);
+      res(r);
     };
 
-    const s = document.createElement("script");
-
-    s.onerror = ()=>{
-
-      if(finished){
-        return;
-      }
-
-      finished = true;
-
-      clearTimeout(timeout);
-
-      delete window[cb];
-
-      reject(new Error("network"));
-    };
+    const s =
+      document.createElement("script");
 
     s.src = url + "&callback=" + cb;
 
