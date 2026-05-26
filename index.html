@@ -146,7 +146,7 @@ button{
 
     <button onclick="prev()">PREV</button>
     <button class="nextBtn" onclick="next()">NEXT</button>
-    <button class="primary" onclick="check()">CHECK</button>
+    <button class="primary" onclick="save()">SAVE</button>
 
     <button class="changeBtn" onclick="changeConfig()">
       Spreadsheet設定変更
@@ -172,7 +172,12 @@ let i = 0;
 let ttsEnabled = true;
 let loading = false;
 
-/* INIT */
+/* クラッシュ防止 */
+window.onerror = function(){
+  document.body.innerHTML =
+    "<div style='padding:20px'>エラーが発生しました。再読み込みしてください</div>";
+};
+
 window.addEventListener("load", init);
 
 async function init(){
@@ -186,11 +191,16 @@ async function init(){
       return;
     }
 
-    config = JSON.parse(saved);
+    config = JSON.parse(saved || "{}");
+
+    if(!config.novelId || !config.reviewId){
+      showSetup();
+      return;
+    }
+
     await loadNovelList();
 
   }catch(e){
-    console.log(e);
     showSetup();
   }
 }
@@ -206,6 +216,11 @@ async function saveConfig(){
   config.novelId = document.getElementById("novelId").value.trim();
   config.reviewId = document.getElementById("reviewId").value.trim();
 
+  if(!config.novelId || !config.reviewId){
+    alert("IDを入力してください");
+    return;
+  }
+
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 
   await loadNovelList();
@@ -219,34 +234,27 @@ function changeConfig(){
 
 async function loadNovelList(){
 
-  try{
+  const list = await jsonp(
+    API_URL + "?mode=getNovelList&spreadsheetId=" + config.novelId
+  );
 
-    const list = await jsonp(
-      `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
-    );
-
-    if(!Array.isArray(list)){
-      throw new Error("invalid list");
-    }
-
-    const sel = document.getElementById("novelList");
-    sel.innerHTML = "";
-
-    list.forEach(n=>{
-      const o = document.createElement("option");
-      o.value = n.name;
-      o.textContent = n.name;
-      sel.appendChild(o);
-    });
-
-    document.getElementById("setup").classList.add("hidden");
-    document.getElementById("select").classList.remove("hidden");
-
-  }catch(e){
-    console.log(e);
-    alert("一覧取得失敗。もう一度開いてね");
+  if(!Array.isArray(list)){
     showSetup();
+    return;
   }
+
+  const sel = document.getElementById("novelList");
+  sel.innerHTML = "";
+
+  list.forEach(n=>{
+    const o = document.createElement("option");
+    o.value = n.name;
+    o.textContent = n.name;
+    sel.appendChild(o);
+  });
+
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("select").classList.remove("hidden");
 }
 
 async function openNovel(){
@@ -254,66 +262,55 @@ async function openNovel(){
   if(loading) return;
   loading = true;
 
-  try{
+  const sheet = document.getElementById("novelList").value;
 
-    const sheet = document.getElementById("novelList").value;
+  const result = await jsonp(
+    API_URL +
+    "?mode=loadNovel" +
+    "&spreadsheetId=" + config.novelId +
+    "&sheetName=" + sheet
+  );
 
-    data = await jsonp(
-      `${API_URL}?mode=loadNovel`
-      +`&spreadsheetId=${config.novelId}`
-      +`&sheetName=${sheet}`
-    );
-
-    if(!Array.isArray(data) || data.length === 0){
-      throw new Error("no data");
-    }
-
-    i = 0;
-
-    document.getElementById("select").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-
-    render();
-
-  }catch(e){
-    console.log(e);
-    alert("読み込み失敗。もう一度押してね");
+  if(!Array.isArray(result)){
+    loading = false;
+    return;
   }
+
+  data = result;
+  i = 0;
+
+  document.getElementById("select").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+
+  render();
 
   loading = false;
 }
 
 async function save(){
 
-  try{
+  const payload = {
+    userId:"local_user",
+    novelId:config.novelId,
+    sentenceId:i,
+    chapter:data[i]?.chapter,
+    english:data[i]?.english,
+    answer:document.getElementById("answer").value,
+    memo:document.getElementById("memo").value,
+    time:new Date().toISOString(),
+    currentIndex:i,
+    novelSpreadsheetId:config.novelId,
+    reviewSpreadsheetId:config.reviewId
+  };
 
-    const payload = {
-      userId:"local_user",
-      novelId:config.novelId,
-      sentenceId:i,
-      chapter:data[i]?.chapter,
-      english:data[i]?.english,
-      answer:document.getElementById("answer").value,
-      memo:document.getElementById("memo").value,
-      time:new Date().toISOString(),
-      currentIndex:i,
-      novelSpreadsheetId:config.novelId,
-      reviewSpreadsheetId:config.reviewId
-    };
-
-    await jsonp(
-      `${API_URL}?mode=save`
-      +`&reviewSpreadsheetId=${config.reviewId}`
-      +`&data=${encodeURIComponent(JSON.stringify(payload))}`
-    );
-
-  }catch(e){
-    console.log(e);
-    alert("保存失敗（もう一度押してね）");
-  }
+  await jsonp(
+    API_URL +
+    "?mode=save" +
+    "&reviewSpreadsheetId=" + config.reviewId +
+    "&data=" + encodeURIComponent(JSON.stringify(payload))
+  );
 }
 
-/* NAV */
 function next(){
   if(i < data.length - 1){
     i++;
@@ -328,7 +325,6 @@ function prev(){
   }
 }
 
-/* RENDER */
 function render(){
 
   const curr = data[i]?.english || "";
@@ -344,23 +340,16 @@ function render(){
 
   document.getElementById("correctJP").innerText = "";
 
-  if(ttsEnabled){
+  if(ttsEnabled && curr){
     try{
-      speak(curr);
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(curr);
+      u.lang = "en-US";
+      speechSynthesis.speak(u);
     }catch(e){}
   }
 }
 
-/* TTS */
-function speak(text){
-  if(!text) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  speechSynthesis.speak(u);
-}
-
-/* TOGGLE */
 function toggleTTS(){
   ttsEnabled = !ttsEnabled;
 
@@ -372,31 +361,36 @@ function toggleTTS(){
   }
 }
 
-/* JSONP */
+/* 安定JSONP */
 function jsonp(url){
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve)=>{
 
     const cb = "cb_" + Math.random().toString(36).slice(2);
-    const timeout = setTimeout(() => {
-      reject("timeout");
+    const s = document.createElement("script");
+
+    const timeout = setTimeout(()=>{
+      cleanup();
+      resolve(null);
     }, 10000);
 
-    window[cb] = r => {
+    function cleanup(){
       clearTimeout(timeout);
       delete window[cb];
-      document.body.removeChild(s);
-      resolve(r);
+      if(s.parentNode) s.parentNode.removeChild(s);
+    }
+
+    window[cb] = function(res){
+      cleanup();
+      resolve(res || null);
     };
 
-    const s = document.createElement("script");
+    s.onerror = function(){
+      cleanup();
+      resolve(null);
+    };
+
     s.src = url + "&callback=" + cb;
-
-    s.onerror = () => {
-      clearTimeout(timeout);
-      reject("network error");
-    };
-
     document.body.appendChild(s);
   });
 }
