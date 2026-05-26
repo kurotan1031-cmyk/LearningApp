@@ -71,12 +71,6 @@ button{
 .nextBtn{background:#2196F3;color:#fff;}
 .changeBtn{background:#666;color:#fff;}
 
-@media (min-width:768px){
-  .wrap{max-width:700px;}
-  .current{font-size:28px;}
-  textarea{height:90px;}
-}
-
 </style>
 </head>
 
@@ -87,8 +81,8 @@ button{
 <!-- SETUP -->
 <div id="setup" class="card hidden">
   <div class="label">初回設定</div>
-  <textarea id="novelId" placeholder="NovelLibrary ID"></textarea>
-  <textarea id="reviewId" placeholder="ReviewDB ID"></textarea>
+  <textarea id="novelId" placeholder="Novel ID"></textarea>
+  <textarea id="reviewId" placeholder="Review ID"></textarea>
   <button class="primary" onclick="saveConfig()">START</button>
 </div>
 
@@ -141,27 +135,30 @@ button{
 
 <script>
 
-const API_URL="https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
-const STORAGE_KEY="learning_app_config";
+const API_URL =
+"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
-let config={},data=[],i=0;
+const KEY = "cfg";
 
-window.addEventListener("load", init);
+let config = {};
+let data = [];
+let i = 0;
 
-/* 初期化（ID保持あり） */
+window.onload = init;
+
+/* ===== INIT（②ベース） ===== */
 function init(){
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const s = localStorage.getItem(KEY);
 
-  if(!saved){
+  if(s){
+    config = JSON.parse(s);
+    loadList();
+  } else {
     showScreen("setup");
-    return;
   }
-
-  config = JSON.parse(saved);
-  loadNovelList();
 }
 
-/* 画面制御 */
+/* ===== 画面制御（①構造） ===== */
 function showScreen(name){
   document.getElementById("setup").classList.add("hidden");
   document.getElementById("select").classList.add("hidden");
@@ -169,71 +166,64 @@ function showScreen(name){
   document.getElementById(name).classList.remove("hidden");
 }
 
-/* 設定保存 */
+/* ===== 設定保存 ===== */
 function saveConfig(){
-  config.novelId=document.getElementById("novelId").value.trim();
-  config.reviewId=document.getElementById("reviewId").value.trim();
+  config.novelId = document.getElementById("novelId").value.trim();
+  config.reviewId = document.getElementById("reviewId").value.trim();
 
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(config));
-  loadNovelList();
+  localStorage.setItem(KEY, JSON.stringify(config));
+  loadList();
 }
 
-/* 設定リセット */
 function changeConfig(){
-  localStorage.removeItem(STORAGE_KEY);
-  config={};
+  localStorage.removeItem(KEY);
+  config = {};
   showScreen("setup");
 }
 
-/* リスト取得 */
-async function loadNovelList(){
-  const list = await jsonp(
-    API_URL+"?mode=getNovelList&spreadsheetId="+config.novelId
-  );
+/* ===== 小説リスト取得（②ロジック） ===== */
+function loadList(){
+  jsonp(API_URL + "?mode=getNovelList&spreadsheetId=" + config.novelId)
+  .then(list=>{
+    const sel = document.getElementById("novelList");
+    sel.innerHTML = "";
 
-  const sel=document.getElementById("novelList");
-  sel.innerHTML="";
+    list.forEach(x=>{
+      const o = document.createElement("option");
+      o.value = x.name;
+      o.textContent = x.name;
+      sel.appendChild(o);
+    });
 
-  list.forEach(n=>{
-    const o=document.createElement("option");
-    o.value=n.name;
-    o.textContent=n.name;
-    sel.appendChild(o);
+    showScreen("select");
   });
-
-  showScreen("select");
 }
 
-/* 開始 */
-async function openNovel(){
-  const sheet=document.getElementById("novelList").value;
+/* ===== 開始（②ロジック） ===== */
+function openNovel(){
+  const sheet = document.getElementById("novelList").value;
 
-  data = await jsonp(
-    API_URL+"?mode=loadNovel"
-    +"&spreadsheetId="+config.novelId
-    +"&sheetName="+sheet
-  );
-
-  i=0;
-  showScreen("app");
-  render();
+  jsonp(API_URL + "?mode=loadNovel&spreadsheetId=" + config.novelId + "&sheetName=" + sheet)
+  .then(r=>{
+    data = r;
+    i = 0;
+    showScreen("app");
+    render();
+  });
 }
 
-/* 表示 */
+/* ===== 表示（①拡張UI対応） ===== */
 function render(){
   document.getElementById("prev").innerText = data[i-1]?.english || "";
   document.getElementById("current").innerText = data[i]?.english || "END";
   document.getElementById("next").innerText = data[i+1]?.english || "";
+
   document.getElementById("correctJP").innerText = "";
 }
 
-/* 操作 */
-function next(){ if(i<data.length-1){i++;render();} }
-function prev(){ if(i>0){i--;render();} }
-
-async function check(){
-
-  const payload={
+/* ===== 保存（①＋②統合） ===== */
+function save(){
+  const payload = {
     userId:"local_user",
     novelId:config.novelId,
     sentenceId:i,
@@ -242,36 +232,53 @@ async function check(){
     answer:document.getElementById("answer").value,
     memo:document.getElementById("memo").value,
     time:new Date().toISOString(),
-    currentIndex:i,
-    novelSpreadsheetId:config.novelId,
     reviewSpreadsheetId:config.reviewId
   };
 
-  await jsonp(
-    API_URL+"?mode=save"
-    +"&reviewSpreadsheetId="+config.reviewId
-    +"&data="+encodeURIComponent(JSON.stringify(payload))
+  return jsonp(
+    API_URL +
+    "?mode=save&reviewSpreadsheetId=" + config.reviewId +
+    "&data=" + encodeURIComponent(JSON.stringify(payload))
   );
-
-  document.getElementById("correctJP").innerText =
-    data[i]?.correctJP || "";
 }
 
-/* JSONP */
-function jsonp(url){
-  return new Promise((resolve,reject)=>{
-    const cb="cb_"+Math.random().toString(36).slice(2);
+/* ===== CHECK ===== */
+function check(){
+  save().then(()=>{
+    document.getElementById("correctJP").innerText =
+      data[i]?.correctJP || "";
+  });
+}
 
-    window[cb]=r=>{
+/* ===== NAV ===== */
+function next(){
+  if(i < data.length - 1){
+    i++;
+    render();
+  }
+}
+
+function prev(){
+  if(i > 0){
+    i--;
+    render();
+  }
+}
+
+/* ===== JSONP ===== */
+function jsonp(url){
+  return new Promise(res=>{
+    const cb = "cb_" + Math.random().toString(36).slice(2);
+
+    window[cb] = d=>{
       delete window[cb];
-      document.body.removeChild(s);
-      resolve(r);
+      script.remove();
+      res(d);
     };
 
-    const s=document.createElement("script");
-    s.src=url+"&callback="+cb;
-    s.onerror=reject;
-    document.body.appendChild(s);
+    const script = document.createElement("script");
+    script.src = url + "&callback=" + cb;
+    document.body.appendChild(script);
   });
 }
 
