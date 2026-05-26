@@ -1,136 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Learning App</title>
-
-<script src="https://accounts.google.com/gsi/client"></script>
-
-<style>
-body{font-family:Arial;margin:0;background:#f4f6f8;}
-.wrap{max-width:800px;margin:auto;padding:16px;}
-
-.card{
-  background:#fff;
-  padding:14px;
-  border-radius:12px;
-  margin-bottom:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-}
-
-.hidden{display:none;}
-
-.label{font-size:12px;color:#888;margin-bottom:6px;}
-
-.current{
-  font-size:24px;
-  font-weight:bold;
-  line-height:1.5;
-}
-
-.context{
-  font-size:14px;
-  color:#666;
-  white-space:pre-wrap;
-}
-
-textarea{
-  width:100%;
-  height:70px;
-  margin-top:8px;
-  padding:10px;
-  font-size:14px;
-  box-sizing:border-box;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.primary{background:#4CAF50;color:#fff}
-.nextBtn{background:#2196F3;color:#fff}
-
-@media (min-width:768px){
-  .wrap{max-width:700px}
-  .current{font-size:28px}
-  textarea{height:90px}
-}
-</style>
-</head>
-
-<body>
-
-<div class="wrap">
-
-<!-- LOGIN -->
-<div class="card">
-  <div class="label">Login</div>
-  <div id="loginBtn"></div>
-</div>
-
-<!-- SETUP -->
-<div id="setup" class="card hidden">
-  <div class="label">初回設定</div>
-  <textarea id="novelId" placeholder="NovelLibrary ID"></textarea>
-  <textarea id="reviewId" placeholder="ReviewDB ID"></textarea>
-  <button class="primary" onclick="saveConfig()">START</button>
-</div>
-
-<!-- SELECT -->
-<div id="select" class="card hidden">
-  <div class="label">Novel Select</div>
-  <select id="novelList"></select>
-  <button class="primary" onclick="openNovel()">OPEN</button>
-</div>
-
-<!-- APP -->
-<div id="app" class="hidden">
-
-  <!-- Prev -->
-  <div class="card">
-    <div class="label">Prev</div>
-    <div id="prev" class="context"></div>
-  </div>
-
-  <!-- Current -->
-  <div class="card">
-    <div class="label">Current</div>
-    <div id="current" class="current"></div>
-  </div>
-
-  <!-- Next -->
-  <div class="card">
-    <div class="label">Next</div>
-    <div id="next" class="context"></div>
-  </div>
-
-  <!-- Input -->
-  <div class="card">
-    <textarea id="answer" placeholder="answer"></textarea>
-    <textarea id="memo" placeholder="memo"></textarea>
-
-    <button class="primary" onclick="save()">SAVE</button>
-    <button class="nextBtn" onclick="next()">NEXT</button>
-    <button onclick="prev()">PREV</button>
-  </div>
-
-</div>
-
-</div>
-
 <script>
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
-let userId="";
-let config={};
-let data=[];
-let i=0;
+let userId = "";
+let config = {};
+let data = [];
+let i = 0;
 
 /* =========================
    LOGIN INIT
@@ -158,38 +33,135 @@ window.addEventListener("load",init);
 /* =========================
    LOGIN
 ========================= */
-function handleLogin(res){
+async function handleLogin(res){
 
   const p = JSON.parse(atob(res.credential.split('.')[1]));
+
   userId = p.sub || p.email;
 
-  document.getElementById("setup").classList.remove("hidden");
+  const saved = localStorage.getItem("learning_config");
+
+  if(!saved){
+    showSetup();
+    return;
+  }
+
+  try{
+
+    config = JSON.parse(saved);
+
+    const list = await jsonp(
+      `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
+    );
+
+    if(!Array.isArray(list)){
+      throw new Error("invalid list");
+    }
+
+    loadNovelList(list);
+
+  }catch(err){
+
+    console.error(err);
+
+    localStorage.removeItem("learning_config");
+
+    showSetup();
+  }
 }
 
 /* =========================
-   CONFIG → LIST
+   SHOW SETUP
+========================= */
+function showSetup(){
+
+  document.getElementById("setup")
+    .classList.remove("hidden");
+
+  document.getElementById("select")
+    .classList.add("hidden");
+
+  document.getElementById("app")
+    .classList.add("hidden");
+}
+
+/* =========================
+   SAVE CONFIG
 ========================= */
 async function saveConfig(){
 
-  config.novelId = document.getElementById("novelId").value.trim();
-  config.reviewId = document.getElementById("reviewId").value.trim();
+  config.novelId =
+    document.getElementById("novelId").value.trim();
 
-  const list = await jsonp(
-    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
+  config.reviewId =
+    document.getElementById("reviewId").value.trim();
+
+  if(!config.novelId || !config.reviewId){
+    alert("Spreadsheet ID required");
+    return;
+  }
+
+  localStorage.setItem(
+    "learning_config",
+    JSON.stringify(config)
   );
 
-  const sel = document.getElementById("novelList");
-  sel.innerHTML = "";
+  await loadNovelList();
+}
 
-  list.forEach(n=>{
-    const o = document.createElement("option");
-    o.value = n.name;
-    o.textContent = n.name;
-    sel.appendChild(o);
-  });
+/* =========================
+   LOAD NOVEL LIST
+========================= */
+async function loadNovelList(preloaded=null){
 
-  document.getElementById("setup").classList.add("hidden");
-  document.getElementById("select").classList.remove("hidden");
+  try{
+
+    const list = preloaded || await jsonp(
+      `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
+    );
+
+    const sel = document.getElementById("novelList");
+
+    sel.innerHTML = "";
+
+    list.forEach(n=>{
+
+      const o = document.createElement("option");
+
+      o.value = n.name;
+      o.textContent = n.name;
+
+      sel.appendChild(o);
+    });
+
+    document.getElementById("setup")
+      .classList.add("hidden");
+
+    document.getElementById("select")
+      .classList.remove("hidden");
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("Spreadsheet ID error");
+
+    localStorage.removeItem("learning_config");
+
+    showSetup();
+  }
+}
+
+/* =========================
+   CHANGE CONFIG
+========================= */
+function changeConfig(){
+
+  localStorage.removeItem("learning_config");
+
+  config = {};
+
+  showSetup();
 }
 
 /* =========================
@@ -197,7 +169,8 @@ async function saveConfig(){
 ========================= */
 async function openNovel(){
 
-  const sheet = document.getElementById("novelList").value;
+  const sheet =
+    document.getElementById("novelList").value;
 
   data = await jsonp(
     `${API_URL}?mode=loadNovel`
@@ -207,8 +180,11 @@ async function openNovel(){
 
   i = 0;
 
-  document.getElementById("select").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("select")
+    .classList.add("hidden");
+
+  document.getElementById("app")
+    .classList.remove("hidden");
 
   render();
 }
@@ -243,6 +219,7 @@ async function save(){
    NAV
 ========================= */
 function next(){
+
   if(i < data.length - 1){
     i++;
     render();
@@ -250,6 +227,7 @@ function next(){
 }
 
 function prev(){
+
   if(i > 0){
     i--;
     render();
@@ -257,17 +235,27 @@ function prev(){
 }
 
 /* =========================
-   RENDER (3レーンUI復活版)
+   RENDER
 ========================= */
 function render(){
 
-  const prevText = data[i-1]?.english || "";
-  const currText = data[i]?.english || "";
-  const nextText = data[i+1]?.english || "";
+  const prevText =
+    data[i-1]?.english || "";
 
-  document.getElementById("prev").innerText = prevText;
-  document.getElementById("current").innerText = currText || "END";
-  document.getElementById("next").innerText = nextText;
+  const currText =
+    data[i]?.english || "";
+
+  const nextText =
+    data[i+1]?.english || "";
+
+  document.getElementById("prev")
+    .innerText = prevText;
+
+  document.getElementById("current")
+    .innerText = currText || "END";
+
+  document.getElementById("next")
+    .innerText = nextText;
 }
 
 /* =========================
@@ -275,23 +263,51 @@ function render(){
 ========================= */
 function jsonp(url){
 
-  return new Promise(res=>{
+  return new Promise((resolve,reject)=>{
 
-    const cb = "cb_" + Math.random().toString(36).slice(2);
+    const cb =
+      "cb_" + Math.random().toString(36).slice(2);
+
+    const timeout = setTimeout(()=>{
+
+      delete window[cb];
+
+      if(document.body.contains(s)){
+        document.body.removeChild(s);
+      }
+
+      reject(new Error("timeout"));
+
+    },10000);
 
     window[cb] = r=>{
+
+      clearTimeout(timeout);
+
       delete window[cb];
-      document.body.removeChild(s);
-      res(r);
+
+      if(document.body.contains(s)){
+        document.body.removeChild(s);
+      }
+
+      resolve(r);
     };
 
     const s = document.createElement("script");
+
+    s.onerror = ()=>{
+
+      clearTimeout(timeout);
+
+      delete window[cb];
+
+      reject(new Error("network"));
+    };
+
     s.src = url + "&callback=" + cb;
+
     document.body.appendChild(s);
   });
 }
 
 </script>
-
-</body>
-</html>
