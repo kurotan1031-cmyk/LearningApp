@@ -70,6 +70,7 @@ button{
 .primary{background:#4CAF50;color:#fff;}
 .nextBtn{background:#2196F3;color:#fff;}
 .changeBtn{background:#666;color:#fff;}
+.ttsBtn{background:#ff9800;color:#fff;}
 
 @media (min-width:768px){
   .wrap{max-width:700px;}
@@ -129,11 +130,9 @@ button{
     <div id="next" class="context"></div>
   </div>
 
-  <!-- INPUT（修正版順序） -->
   <div class="card">
 
     <textarea id="memo" placeholder="memo"></textarea>
-
     <textarea id="answer" placeholder="answer"></textarea>
 
     <div class="card">
@@ -141,10 +140,12 @@ button{
       <div id="correctJP" class="context"></div>
     </div>
 
+    <button class="ttsBtn" onclick="toggleTTS()" id="ttsBtn">
+      🔊 音声ON
+    </button>
+
     <button onclick="prev()">PREV</button>
-
     <button class="nextBtn" onclick="next()">NEXT</button>
-
     <button class="primary" onclick="check()">CHECK</button>
 
     <button class="changeBtn" onclick="changeConfig()">
@@ -168,19 +169,30 @@ let config = {};
 let data = [];
 let i = 0;
 
+let ttsEnabled = true;
+let loading = false;
+
+/* INIT */
 window.addEventListener("load", init);
 
 async function init(){
 
-  const saved = localStorage.getItem(STORAGE_KEY);
+  try{
 
-  if(!saved){
+    const saved = localStorage.getItem(STORAGE_KEY);
+
+    if(!saved){
+      showSetup();
+      return;
+    }
+
+    config = JSON.parse(saved);
+    await loadNovelList();
+
+  }catch(e){
+    console.log(e);
     showSetup();
-    return;
   }
-
-  config = JSON.parse(saved);
-  await loadNovelList();
 }
 
 function showSetup(){
@@ -207,73 +219,101 @@ function changeConfig(){
 
 async function loadNovelList(){
 
-  const list = await jsonp(
-    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
-  );
+  try{
 
-  const sel = document.getElementById("novelList");
-  sel.innerHTML = "";
+    const list = await jsonp(
+      `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
+    );
 
-  list.forEach(n=>{
-    const o = document.createElement("option");
-    o.value = n.name;
-    o.textContent = n.name;
-    sel.appendChild(o);
-  });
+    if(!Array.isArray(list)){
+      throw new Error("invalid list");
+    }
 
-  document.getElementById("setup").classList.add("hidden");
-  document.getElementById("select").classList.remove("hidden");
+    const sel = document.getElementById("novelList");
+    sel.innerHTML = "";
+
+    list.forEach(n=>{
+      const o = document.createElement("option");
+      o.value = n.name;
+      o.textContent = n.name;
+      sel.appendChild(o);
+    });
+
+    document.getElementById("setup").classList.add("hidden");
+    document.getElementById("select").classList.remove("hidden");
+
+  }catch(e){
+    console.log(e);
+    alert("一覧取得失敗。もう一度開いてね");
+    showSetup();
+  }
 }
 
 async function openNovel(){
 
-  const sheet = document.getElementById("novelList").value;
+  if(loading) return;
+  loading = true;
 
-  data = await jsonp(
-    `${API_URL}?mode=loadNovel`
-    +`&spreadsheetId=${config.novelId}`
-    +`&sheetName=${sheet}`
-  );
+  try{
 
-  i = 0;
+    const sheet = document.getElementById("novelList").value;
 
-  document.getElementById("select").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
+    data = await jsonp(
+      `${API_URL}?mode=loadNovel`
+      +`&spreadsheetId=${config.novelId}`
+      +`&sheetName=${sheet}`
+    );
 
-  render();
+    if(!Array.isArray(data) || data.length === 0){
+      throw new Error("no data");
+    }
+
+    i = 0;
+
+    document.getElementById("select").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+
+    render();
+
+  }catch(e){
+    console.log(e);
+    alert("読み込み失敗。もう一度押してね");
+  }
+
+  loading = false;
 }
 
 async function save(){
 
-  const payload = {
-    userId:"local_user",
-    novelId:config.novelId,
-    sentenceId:i,
-    chapter:data[i]?.chapter,
-    english:data[i]?.english,
-    answer:document.getElementById("answer").value,
-    memo:document.getElementById("memo").value,
-    time:new Date().toISOString(),
-    currentIndex:i,
-    novelSpreadsheetId:config.novelId,
-    reviewSpreadsheetId:config.reviewId
-  };
+  try{
 
-  await jsonp(
-    `${API_URL}?mode=save`
-    +`&reviewSpreadsheetId=${config.reviewId}`
-    +`&data=${encodeURIComponent(JSON.stringify(payload))}`
-  );
+    const payload = {
+      userId:"local_user",
+      novelId:config.novelId,
+      sentenceId:i,
+      chapter:data[i]?.chapter,
+      english:data[i]?.english,
+      answer:document.getElementById("answer").value,
+      memo:document.getElementById("memo").value,
+      time:new Date().toISOString(),
+      currentIndex:i,
+      novelSpreadsheetId:config.novelId,
+      reviewSpreadsheetId:config.reviewId
+    };
+
+    await jsonp(
+      `${API_URL}?mode=save`
+      +`&reviewSpreadsheetId=${config.reviewId}`
+      +`&data=${encodeURIComponent(JSON.stringify(payload))}`
+    );
+
+  }catch(e){
+    console.log(e);
+    alert("保存失敗（もう一度押してね）");
+  }
 }
 
-async function check(){
-
-  await save();
-
-  document.getElementById("correctJP").innerText =
-    data[i]?.correctJP || "";
-}
-
+/* NAV */
 function next(){
   if(i < data.length - 1){
     i++;
@@ -288,21 +328,62 @@ function prev(){
   }
 }
 
+/* RENDER */
 function render(){
-  document.getElementById("prev").innerText = data[i-1]?.english || "";
-  document.getElementById("current").innerText = data[i]?.english || "END";
-  document.getElementById("next").innerText = data[i+1]?.english || "";
+
+  const curr = data[i]?.english || "";
+
+  document.getElementById("prev").innerText =
+    data[i-1]?.english || "";
+
+  document.getElementById("current").innerText =
+    curr || "END";
+
+  document.getElementById("next").innerText =
+    data[i+1]?.english || "";
 
   document.getElementById("correctJP").innerText = "";
+
+  if(ttsEnabled){
+    try{
+      speak(curr);
+    }catch(e){}
+  }
 }
 
+/* TTS */
+function speak(text){
+  if(!text) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  speechSynthesis.speak(u);
+}
+
+/* TOGGLE */
+function toggleTTS(){
+  ttsEnabled = !ttsEnabled;
+
+  document.getElementById("ttsBtn").innerText =
+    ttsEnabled ? "🔊 音声ON" : "🔇 音声OFF";
+
+  if(!ttsEnabled){
+    speechSynthesis.cancel();
+  }
+}
+
+/* JSONP */
 function jsonp(url){
 
-  return new Promise((resolve,reject)=>{
+  return new Promise((resolve, reject) => {
 
     const cb = "cb_" + Math.random().toString(36).slice(2);
+    const timeout = setTimeout(() => {
+      reject("timeout");
+    }, 10000);
 
-    window[cb] = r=>{
+    window[cb] = r => {
+      clearTimeout(timeout);
       delete window[cb];
       document.body.removeChild(s);
       resolve(r);
@@ -310,7 +391,12 @@ function jsonp(url){
 
     const s = document.createElement("script");
     s.src = url + "&callback=" + cb;
-    s.onerror = reject;
+
+    s.onerror = () => {
+      clearTimeout(timeout);
+      reject("network error");
+    };
+
     document.body.appendChild(s);
   });
 }
