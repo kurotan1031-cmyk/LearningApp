@@ -5,77 +5,12 @@
 <title>Learning App</title>
 
 <style>
-body{
-  font-family:Arial;
-  margin:0;
-  background:#f4f6f8;
-}
-
-.wrap{
-  max-width:800px;
-  margin:auto;
-  padding:16px;
-}
-
-.card{
-  background:#fff;
-  padding:14px;
-  border-radius:12px;
-  margin-bottom:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-}
-
+body{font-family:Arial;margin:0;background:#f4f6f8;}
+.wrap{max-width:800px;margin:auto;padding:16px;}
+.card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
 .hidden{display:none;}
-
-.label{
-  font-size:12px;
-  color:#888;
-  margin-bottom:6px;
-}
-
-.current{
-  font-size:24px;
-  font-weight:bold;
-  line-height:1.5;
-}
-
-.context{
-  font-size:14px;
-  color:#666;
-  white-space:pre-wrap;
-}
-
-textarea,
-select{
-  width:100%;
-  height:70px;
-  margin-top:8px;
-  padding:10px;
-  font-size:14px;
-  box-sizing:border-box;
-}
-
-select{height:auto;}
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.primary{background:#4CAF50;color:#fff;}
-.nextBtn{background:#2196F3;color:#fff;}
-.changeBtn{background:#666;color:#fff;}
-.ttsBtn{background:#ff9800;color:#fff;}
-
-@media (min-width:768px){
-  .wrap{max-width:700px;}
-  .current{font-size:28px;}
-  textarea{height:90px;}
-}
+.current{font-size:24px;font-weight:bold;}
+button{width:100%;padding:12px;margin-top:10px;}
 </style>
 </head>
 
@@ -83,267 +18,102 @@ button{
 
 <div class="wrap">
 
-<!-- SETUP -->
 <div id="setup" class="card hidden">
-
-  <div class="label">初回設定</div>
-
-  <textarea id="novelId" placeholder="NovelLibrary ID"></textarea>
-  <textarea id="reviewId" placeholder="ReviewDB ID"></textarea>
-
-  <button class="primary" onclick="saveConfig()">START</button>
-
+  <textarea id="novelId" placeholder="Novel ID"></textarea>
+  <textarea id="reviewId" placeholder="Review ID"></textarea>
+  <button onclick="saveConfig()">START</button>
 </div>
 
-<!-- SELECT -->
 <div id="select" class="card hidden">
-
-  <div class="label">Novel Select</div>
-
   <select id="novelList"></select>
-
-  <button class="primary" onclick="openNovel()">START</button>
-
-  <button class="changeBtn" onclick="changeConfig()">
-    Spreadsheet設定変更
-  </button>
-
+  <button onclick="openNovel()">START</button>
 </div>
 
-<!-- APP -->
 <div id="app" class="hidden">
-
   <div class="card">
-    <div class="label">Prev</div>
-    <div id="prev" class="context"></div>
-  </div>
-
-  <div class="card">
-    <div class="label">Current</div>
     <div id="current" class="current"></div>
   </div>
-
-  <div class="card">
-    <div class="label">Next</div>
-    <div id="next" class="context"></div>
-  </div>
-
-  <div class="card">
-
-    <textarea id="memo" placeholder="memo"></textarea>
-    <textarea id="answer" placeholder="answer"></textarea>
-
-    <div class="card">
-      <div class="label">CorrectJP</div>
-      <div id="correctJP" class="context"></div>
-    </div>
-
-    <button class="ttsBtn" onclick="toggleTTS()" id="ttsBtn">
-      🔊 音声ON
-    </button>
-
-    <button onclick="prev()">PREV</button>
-    <button class="nextBtn" onclick="next()">NEXT</button>
-    <button class="primary" onclick="check()">CHECK</button>
-
-    <button class="changeBtn" onclick="changeConfig()">
-      Spreadsheet設定変更
-    </button>
-
-  </div>
-
+  <button onclick="next()">NEXT</button>
 </div>
 
 </div>
 
 <script>
 
-const API_URL =
-"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
+const API_URL="https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
+const KEY="cfg";
 
-const STORAGE_KEY = "learning_app_config";
+let config={},data=[],i=0;
 
-let config = {};
-let data = [];
-let i = 0;
+window.onload=init;
 
-let ttsEnabled = true;
-
-/* INIT（完全安定版） */
-window.addEventListener("load", init);
-
-async function init(){
-
-  const saved = localStorage.getItem(STORAGE_KEY);
-  config = saved ? JSON.parse(saved) : {};
-
-  document.getElementById("setup").classList.remove("hidden");
-
-  if(config.novelId){
-    await loadNovelList();
-  }
-}
-
-/* SAVE CONFIG */
-async function saveConfig(){
-
-  config.novelId = document.getElementById("novelId").value.trim();
-  config.reviewId = document.getElementById("reviewId").value.trim();
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-
-  await loadNovelList();
-}
-
-function changeConfig(){
-  localStorage.removeItem(STORAGE_KEY);
-  config = {};
+function init(){
+  const s=localStorage.getItem(KEY);
+  if(s)config=JSON.parse(s);
   document.getElementById("setup").classList.remove("hidden");
 }
 
-/* LOAD LIST */
-async function loadNovelList(){
+/* 設定保存→完了後に必ずリスト取得 */
+function saveConfig(){
+  config.novelId=document.getElementById("novelId").value;
+  config.reviewId=document.getElementById("reviewId").value;
+  localStorage.setItem(KEY,JSON.stringify(config));
+  loadList();
+}
 
-  const list = await jsonp(
-    `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
-  );
-
-  const sel = document.getElementById("novelList");
-  sel.innerHTML = "";
-
-  list.forEach(n=>{
-    const o = document.createElement("option");
-    o.value = n.name;
-    o.textContent = n.name;
-    sel.appendChild(o);
+/* ★順番固定：取得→描画 */
+function loadList(){
+  jsonp(API_URL+"?mode=getNovelList&spreadsheetId="+config.novelId)
+  .then(list=>{
+    const sel=document.getElementById("novelList");
+    sel.innerHTML="";
+    list.forEach(x=>{
+      let o=document.createElement("option");
+      o.value=x.name;
+      o.textContent=x.name;
+      sel.appendChild(o);
+    });
+    document.getElementById("select").classList.remove("hidden");
   });
-
-  document.getElementById("select").classList.remove("hidden");
 }
 
-/* OPEN */
-async function openNovel(){
+/* ★データ取得完了後にだけUI表示 */
+function openNovel(){
+  const sheet=document.getElementById("novelList").value;
 
-  const sel = document.getElementById("novelList");
-  const sheet = sel.value;
+  jsonp(API_URL+"?mode=loadNovel&spreadsheetId="+config.novelId+"&sheetName="+sheet)
+  .then(r=>{
+    data=r;
+    i=0;
 
-  data = await jsonp(
-    `${API_URL}?mode=loadNovel`
-    +`&spreadsheetId=${config.novelId}`
-    +`&sheetName=${sheet}`
-  );
+    document.getElementById("select").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
 
-  i = 0;
-
-  document.getElementById("select").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
-
-  render();
+    render(); // ★ここ絶対最後
+  });
 }
 
-/* SAVE */
-async function save(){
-
-  const payload = {
-    userId:"local_user",
-    novelId:config.novelId,
-    sentenceId:i,
-    chapter:data[i]?.chapter,
-    english:data[i]?.english,
-    answer:document.getElementById("answer").value,
-    memo:document.getElementById("memo").value,
-    time:new Date().toISOString(),
-    currentIndex:i,
-    novelSpreadsheetId:config.novelId,
-    reviewSpreadsheetId:config.reviewId
-  };
-
-  await jsonp(
-    `${API_URL}?mode=save`
-    +`&reviewSpreadsheetId=${config.reviewId}`
-    +`&data=${encodeURIComponent(JSON.stringify(payload))}`
-  );
-}
-
-async function check(){
-  await save();
-  document.getElementById("correctJP").innerText =
-    data[i]?.correctJP || "";
-}
-
-/* NAV */
-function next(){
-  if(i < data.length - 1){
-    i++;
-    render();
-  }
-}
-
-function prev(){
-  if(i > 0){
-    i--;
-    render();
-  }
-}
-
-/* RENDER */
 function render(){
-
-  const curr = data[i]?.english || "";
-
-  document.getElementById("prev").innerText =
-    data[i-1]?.english || "";
-
-  document.getElementById("current").innerText =
-    curr || "END";
-
-  document.getElementById("next").innerText =
-    data[i+1]?.english || "";
-
-  document.getElementById("correctJP").innerText = "";
-
-  if(ttsEnabled){
-    speak(curr);
-  }
+  document.getElementById("current").innerText=data[i]?.english||"END";
 }
 
-/* TTS */
-function speak(text){
-  if(!text) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  speechSynthesis.speak(u);
-}
-
-/* TOGGLE */
-function toggleTTS(){
-  ttsEnabled = !ttsEnabled;
-  document.getElementById("ttsBtn").innerText =
-    ttsEnabled ? "🔊 音声ON" : "🔇 音声OFF";
-
-  if(!ttsEnabled){
-    speechSynthesis.cancel();
-  }
+function next(){
+  i++;
+  render();
 }
 
 /* JSONP */
 function jsonp(url){
-
-  return new Promise((resolve,reject)=>{
-
-    const cb = "cb_" + Math.random().toString(36).slice(2);
-
-    window[cb] = r=>{
+  return new Promise(res=>{
+    const cb="cb"+Math.random().toString(36).slice(2);
+    window[cb]=d=>{
       delete window[cb];
-      document.body.removeChild(s);
-      resolve(r);
+      script.remove();
+      res(d);
     };
-
-    const s = document.createElement("script");
-    s.src = url + "&callback=" + cb;
-    s.onerror = reject;
-    document.body.appendChild(s);
+    const script=document.createElement("script");
+    script.src=url+"&callback="+cb;
+    document.body.appendChild(script);
   });
 }
 
