@@ -235,4 +235,119 @@ async function openNovel(){
 
   i = 0;
 
-  document.getElementById("select").
+  document.getElementById("select").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+
+  render();
+}
+
+/* SAVE */
+async function save(){
+
+  const payload = {
+    userId:"local_user",
+    novelId:config.novelId,
+    sentenceId:i,
+    chapter:data[i]?.chapter,
+    english:data[i]?.english,
+    answer:document.getElementById("answer").value,
+    memo:document.getElementById("memo").value,
+    time:new Date().toISOString(),
+    currentIndex:i,
+    novelSpreadsheetId:config.novelId,
+    reviewSpreadsheetId:config.reviewId
+  };
+
+  await jsonp(
+    `${API_URL}?mode=save`
+    +`&reviewSpreadsheetId=${config.reviewId}`
+    +`&data=${encodeURIComponent(JSON.stringify(payload))}`
+  );
+}
+
+async function check(){
+  await save();
+  document.getElementById("correctJP").innerText =
+    data[i]?.correctJP || "";
+}
+
+/* NAV */
+function next(){
+  if(i < data.length - 1){
+    i++;
+    render();
+  }
+}
+
+function prev(){
+  if(i > 0){
+    i--;
+    render();
+  }
+}
+
+/* RENDER */
+function render(){
+
+  const curr = data[i]?.english || "";
+
+  document.getElementById("prev").innerText =
+    data[i-1]?.english || "";
+
+  document.getElementById("current").innerText =
+    curr || "END";
+
+  document.getElementById("next").innerText =
+    data[i+1]?.english || "";
+
+  document.getElementById("correctJP").innerText = "";
+
+  if(ttsEnabled){
+    speak(curr);
+  }
+}
+
+/* TTS */
+function speak(text){
+  if(!text) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  speechSynthesis.speak(u);
+}
+
+/* TOGGLE */
+function toggleTTS(){
+  ttsEnabled = !ttsEnabled;
+  document.getElementById("ttsBtn").innerText =
+    ttsEnabled ? "🔊 音声ON" : "🔇 音声OFF";
+
+  if(!ttsEnabled){
+    speechSynthesis.cancel();
+  }
+}
+
+/* JSONP */
+function jsonp(url){
+
+  return new Promise((resolve,reject)=>{
+
+    const cb = "cb_" + Math.random().toString(36).slice(2);
+
+    window[cb] = r=>{
+      delete window[cb];
+      document.body.removeChild(s);
+      resolve(r);
+    };
+
+    const s = document.createElement("script");
+    s.src = url + "&callback=" + cb;
+    s.onerror = reject;
+    document.body.appendChild(s);
+  });
+}
+
+</script>
+
+</body>
+</html>
