@@ -6,11 +6,32 @@
 
 <style>
 body{font-family:Arial;margin:0;background:#f4f6f8;}
-.wrap{max-width:800px;margin:auto;padding:16px;}
+.wrap{max-width:900px;margin:auto;padding:16px;}
 .card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
 .hidden{display:none;}
-.current{font-size:24px;font-weight:bold;}
-button{width:100%;padding:12px;margin-top:10px;}
+
+.current{font-size:24px;font-weight:bold;margin-bottom:10px;}
+
+button{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+}
+
+.row{
+  display:flex;
+  gap:6px;
+}
+
+.smallbtn{
+  flex:1;
+}
+
+.label{
+  font-weight:bold;
+  margin-top:8px;
+}
+
 </style>
 </head>
 
@@ -18,22 +39,43 @@ button{width:100%;padding:12px;margin-top:10px;}
 
 <div class="wrap">
 
+<!-- ID入力 -->
 <div id="setup" class="card hidden">
   <textarea id="novelId" placeholder="Novel ID"></textarea>
   <textarea id="reviewId" placeholder="Review ID"></textarea>
   <button onclick="saveConfig()">START</button>
 </div>
 
+<!-- 小説選択 -->
 <div id="select" class="card hidden">
   <select id="novelList"></select>
   <button onclick="openNovel()">START</button>
 </div>
 
+<!-- 学習画面（夕方フルUI） -->
 <div id="app" class="hidden">
+
   <div class="card">
+
     <div id="current" class="current"></div>
+
+    <div class="label">CorrectJP</div>
+    <div id="correctJP"></div>
+
+    <div class="label">Note</div>
+    <div id="note"></div>
+
   </div>
-  <button onclick="next()">NEXT</button>
+
+  <div class="row">
+    <button class="smallbtn" onclick="prev()">PREV</button>
+    <button class="smallbtn" onclick="next()">NEXT</button>
+  </div>
+
+  <button onclick="speak()">SPEAK</button>
+  <button onclick="markGood()">GOOD</button>
+  <button onclick="markBad()">BAD</button>
+
 </div>
 
 </div>
@@ -47,15 +89,15 @@ let config={},data=[],i=0;
 
 window.onload=init;
 
-/* ★ここだけ修正済み */
+/* ★安定版init */
 function init(){
   const s = localStorage.getItem(KEY);
 
   if(s){
     config = JSON.parse(s);
-    loadList();   // 保存済みなら復帰
+    loadList();
   } else {
-    showScreen("setup"); // 未保存だけ入力
+    showScreen("setup");
   }
 }
 
@@ -67,7 +109,7 @@ function showScreen(name){
   document.getElementById(name).classList.remove("hidden");
 }
 
-/* 設定保存 */
+/* 保存 */
 function saveConfig(){
   config.novelId=document.getElementById("novelId").value;
   config.reviewId=document.getElementById("reviewId").value;
@@ -75,7 +117,7 @@ function saveConfig(){
   loadList();
 }
 
-/* 小説リスト取得 */
+/* リスト */
 function loadList(){
   jsonp(API_URL+"?mode=getNovelList&spreadsheetId="+config.novelId)
   .then(list=>{
@@ -91,7 +133,7 @@ function loadList(){
   });
 }
 
-/* 小説開始 */
+/* 開始 */
 function openNovel(){
   const sheet=document.getElementById("novelList").value;
 
@@ -106,14 +148,24 @@ function openNovel(){
 
 /* 表示 */
 function render(){
-  document.getElementById("current").innerText=data[i]?.english||"END";
+  let d = data[i] || {};
+
+  document.getElementById("current").innerText = d.english || "END";
+  document.getElementById("correctJP").innerText = d.correctJP || "";
+  document.getElementById("note").innerText = d.note || "";
 }
 
-/* 次へ */
-function next(){
-  i++;
-  render();
+/* 操作 */
+function next(){ i++; render(); }
+function prev(){ i = Math.max(0, i-1); render(); }
+
+function speak(){
+  const t = data[i]?.english;
+  if(t) speechSynthesis.speak(new SpeechSynthesisUtterance(t));
 }
+
+function markGood(){}
+function markBad(){}
 
 /* JSONP */
 function jsonp(url){
