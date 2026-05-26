@@ -45,7 +45,6 @@ button{
   padding:12px;
   margin-top:10px;
 }
-
 </style>
 </head>
 
@@ -82,21 +81,19 @@ let config={},data=[],i=0;
 
 window.onload=init;
 
-function init(){
-  const s = localStorage.getItem(KEY);
-  if(s){
-    config = JSON.parse(s);
-    loadList();
-  } else {
-    showScreen("setup");
-  }
-}
-
+/* ★夕方版の画面制御（戻す） */
 function showScreen(name){
   document.getElementById("setup").classList.add("hidden");
   document.getElementById("select").classList.add("hidden");
   document.getElementById("app").classList.add("hidden");
   document.getElementById(name).classList.remove("hidden");
+}
+
+/* ★ベースロジック（変更なし） */
+function init(){
+  const s=localStorage.getItem(KEY);
+  if(s)config=JSON.parse(s);
+  showScreen("setup");
 }
 
 function saveConfig(){
@@ -123,6 +120,7 @@ function loadList(){
 
 function openNovel(){
   const sheet=document.getElementById("novelList").value;
+
   jsonp(API_URL+"?mode=loadNovel&spreadsheetId="+config.novelId+"&sheetName="+sheet)
   .then(r=>{
     data=r;
