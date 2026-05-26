@@ -8,12 +8,26 @@ let data = [];
 let i = 0;
 
 /* =========================
+   SAFE ELEMENT
+========================= */
+function el(id){
+  return document.getElementById(id);
+}
+
+/* =========================
    LOGIN INIT
 ========================= */
 function init(){
 
   if(!window.google || !google.accounts){
-    setTimeout(init,50);
+    setTimeout(init,100);
+    return;
+  }
+
+  const btn = el("loginBtn");
+
+  if(!btn){
+    console.error("loginBtn missing");
     return;
   }
 
@@ -22,10 +36,10 @@ function init(){
     callback:handleLogin
   });
 
-  google.accounts.id.renderButton(
-    document.getElementById("loginBtn"),
-    {theme:"outline",size:"large"}
-  );
+  google.accounts.id.renderButton(btn,{
+    theme:"outline",
+    size:"large"
+  });
 }
 
 window.addEventListener("load",init);
@@ -35,18 +49,21 @@ window.addEventListener("load",init);
 ========================= */
 async function handleLogin(res){
 
-  const p = JSON.parse(atob(res.credential.split('.')[1]));
-
-  userId = p.sub || p.email;
-
-  const saved = localStorage.getItem("learning_config");
-
-  if(!saved){
-    showSetup();
-    return;
-  }
-
   try{
+
+    const p = JSON.parse(
+      atob(res.credential.split('.')[1])
+    );
+
+    userId = p.sub || p.email;
+
+    const saved =
+      localStorage.getItem("learning_config");
+
+    if(!saved){
+      showSetup();
+      return;
+    }
 
     config = JSON.parse(saved);
 
@@ -58,7 +75,7 @@ async function handleLogin(res){
       throw new Error("invalid list");
     }
 
-    loadNovelList(list);
+    await loadNovelList(list);
 
   }catch(err){
 
@@ -75,14 +92,21 @@ async function handleLogin(res){
 ========================= */
 function showSetup(){
 
-  document.getElementById("setup")
-    .classList.remove("hidden");
+  const setup = el("setup");
+  const select = el("select");
+  const app = el("app");
 
-  document.getElementById("select")
-    .classList.add("hidden");
+  if(setup){
+    setup.classList.remove("hidden");
+  }
 
-  document.getElementById("app")
-    .classList.add("hidden");
+  if(select){
+    select.classList.add("hidden");
+  }
+
+  if(app){
+    app.classList.add("hidden");
+  }
 }
 
 /* =========================
@@ -90,23 +114,32 @@ function showSetup(){
 ========================= */
 async function saveConfig(){
 
-  config.novelId =
-    document.getElementById("novelId").value.trim();
+  try{
 
-  config.reviewId =
-    document.getElementById("reviewId").value.trim();
+    config.novelId =
+      el("novelId")?.value.trim();
 
-  if(!config.novelId || !config.reviewId){
-    alert("Spreadsheet ID required");
-    return;
+    config.reviewId =
+      el("reviewId")?.value.trim();
+
+    if(!config.novelId || !config.reviewId){
+      alert("Spreadsheet ID required");
+      return;
+    }
+
+    localStorage.setItem(
+      "learning_config",
+      JSON.stringify(config)
+    );
+
+    await loadNovelList();
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("saveConfig error");
   }
-
-  localStorage.setItem(
-    "learning_config",
-    JSON.stringify(config)
-  );
-
-  await loadNovelList();
 }
 
 /* =========================
@@ -120,7 +153,12 @@ async function loadNovelList(preloaded=null){
       `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
     );
 
-    const sel = document.getElementById("novelList");
+    const sel = el("novelList");
+
+    if(!sel){
+      alert("novelList missing");
+      return;
+    }
 
     sel.innerHTML = "";
 
@@ -134,11 +172,9 @@ async function loadNovelList(preloaded=null){
       sel.appendChild(o);
     });
 
-    document.getElementById("setup")
-      .classList.add("hidden");
+    el("setup")?.classList.add("hidden");
 
-    document.getElementById("select")
-      .classList.remove("hidden");
+    el("select")?.classList.remove("hidden");
 
   }catch(err){
 
@@ -169,24 +205,31 @@ function changeConfig(){
 ========================= */
 async function openNovel(){
 
-  const sheet =
-    document.getElementById("novelList").value;
+  try{
 
-  data = await jsonp(
-    `${API_URL}?mode=loadNovel`
-    +`&spreadsheetId=${config.novelId}`
-    +`&sheetName=${sheet}`
-  );
+    const sheet =
+      el("novelList")?.value;
 
-  i = 0;
+    data = await jsonp(
+      `${API_URL}?mode=loadNovel`
+      +`&spreadsheetId=${config.novelId}`
+      +`&sheetName=${sheet}`
+    );
 
-  document.getElementById("select")
-    .classList.add("hidden");
+    i = 0;
 
-  document.getElementById("app")
-    .classList.remove("hidden");
+    el("select")?.classList.add("hidden");
 
-  render();
+    el("app")?.classList.remove("hidden");
+
+    render();
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("openNovel error");
+  }
 }
 
 /* =========================
@@ -194,25 +237,34 @@ async function openNovel(){
 ========================= */
 async function save(){
 
-  const payload = {
-    userId,
-    novelId: config.novelId,
-    sentenceId: i,
-    chapter: data[i]?.chapter,
-    english: data[i]?.english,
-    answer: document.getElementById("answer").value,
-    memo: document.getElementById("memo").value,
-    time: new Date().toISOString(),
-    currentIndex: i,
-    novelSpreadsheetId: config.novelId,
-    reviewSpreadsheetId: config.reviewId
-  };
+  try{
 
-  await jsonp(
-    `${API_URL}?mode=save`
-    +`&reviewSpreadsheetId=${config.reviewId}`
-    +`&data=${encodeURIComponent(JSON.stringify(payload))}`
-  );
+    const payload = {
+      userId,
+      novelId: config.novelId,
+      sentenceId: i,
+      chapter: data[i]?.chapter,
+      english: data[i]?.english,
+      answer: el("answer")?.value || "",
+      memo: el("memo")?.value || "",
+      time: new Date().toISOString(),
+      currentIndex: i,
+      novelSpreadsheetId: config.novelId,
+      reviewSpreadsheetId: config.reviewId
+    };
+
+    await jsonp(
+      `${API_URL}?mode=save`
+      +`&reviewSpreadsheetId=${config.reviewId}`
+      +`&data=${encodeURIComponent(JSON.stringify(payload))}`
+    );
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("save error");
+  }
 }
 
 /* =========================
@@ -239,23 +291,42 @@ function prev(){
 ========================= */
 function render(){
 
-  const prevText =
-    data[i-1]?.english || "";
+  try{
 
-  const currText =
-    data[i]?.english || "";
+    const prevEl = el("prev");
+    const currEl = el("current");
+    const nextEl = el("next");
 
-  const nextText =
-    data[i+1]?.english || "";
+    if(!currEl){
+      console.error("current missing");
+      return;
+    }
 
-  document.getElementById("prev")
-    .innerText = prevText;
+    const prevText =
+      data[i-1]?.english || "";
 
-  document.getElementById("current")
-    .innerText = currText || "END";
+    const currText =
+      data[i]?.english || "";
 
-  document.getElementById("next")
-    .innerText = nextText;
+    const nextText =
+      data[i+1]?.english || "";
+
+    if(prevEl){
+      prevEl.innerText = prevText;
+    }
+
+    currEl.innerText = currText || "END";
+
+    if(nextEl){
+      nextEl.innerText = nextText;
+    }
+
+  }catch(err){
+
+    console.error(err);
+
+    alert("render error");
+  }
 }
 
 /* =========================
@@ -268,7 +339,15 @@ function jsonp(url){
     const cb =
       "cb_" + Math.random().toString(36).slice(2);
 
+    let finished = false;
+
     const timeout = setTimeout(()=>{
+
+      if(finished){
+        return;
+      }
+
+      finished = true;
 
       delete window[cb];
 
@@ -281,6 +360,12 @@ function jsonp(url){
     },10000);
 
     window[cb] = r=>{
+
+      if(finished){
+        return;
+      }
+
+      finished = true;
 
       clearTimeout(timeout);
 
@@ -296,6 +381,12 @@ function jsonp(url){
     const s = document.createElement("script");
 
     s.onerror = ()=>{
+
+      if(finished){
+        return;
+      }
+
+      finished = true;
 
       clearTimeout(timeout);
 
