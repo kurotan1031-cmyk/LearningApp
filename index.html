@@ -71,9 +71,20 @@ button{
   cursor:pointer;
 }
 
-.primary{background:#4CAF50;color:#fff;}
-.nextBtn{background:#2196F3;color:#fff;}
-.changeBtn{background:#666;color:#fff;}
+.primary{
+  background:#4CAF50;
+  color:#fff;
+}
+
+.nextBtn{
+  background:#2196F3;
+  color:#fff;
+}
+
+.changeBtn{
+  background:#666;
+  color:#fff;
+}
 
 @media (min-width:768px){
   .wrap{max-width:700px;}
@@ -138,11 +149,11 @@ button{
     <textarea id="answer" placeholder="answer"></textarea>
     <textarea id="memo" placeholder="memo"></textarea>
 
-    <button class="primary" onclick="save()">SAVE / CHECK</button>
-
     <button onclick="prev()">PREV</button>
 
     <button class="nextBtn" onclick="next()">NEXT</button>
+
+    <button class="primary" onclick="check()">CHECK</button>
 
     <button class="changeBtn" onclick="changeConfig()">
       Spreadsheet設定変更
@@ -177,12 +188,9 @@ async function init(){
     return;
   }
 
-  try{
-    config = JSON.parse(saved);
-    await loadNovelList();
-  }catch{
-    showSetup();
-  }
+  config = JSON.parse(saved);
+
+  await loadNovelList();
 }
 
 /* SHOW */
@@ -197,11 +205,6 @@ async function saveConfig(){
 
   config.novelId = document.getElementById("novelId").value.trim();
   config.reviewId = document.getElementById("reviewId").value.trim();
-
-  if(!config.novelId || !config.reviewId){
-    alert("Spreadsheet ID required");
-    return;
-  }
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 
@@ -255,7 +258,7 @@ async function openNovel(){
   render();
 }
 
-/* SAVE */
+/* SAVE（内部で使う） */
 async function save(){
 
   const payload = {
@@ -277,8 +280,17 @@ async function save(){
     +`&reviewSpreadsheetId=${config.reviewId}`
     +`&data=${encodeURIComponent(JSON.stringify(payload))}`
   );
+}
 
-  alert("Saved");
+/* CHECK（新仕様） */
+async function check(){
+
+  await save();
+
+  const jp = data[i]?.correctJP || "";
+
+  document.getElementById("current").innerText =
+    data[i]?.english + "\n\n" + jp;
 }
 
 /* NAV */
