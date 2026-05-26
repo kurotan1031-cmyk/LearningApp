@@ -5,12 +5,47 @@
 <title>Learning App</title>
 
 <style>
-body{font-family:Arial;margin:0;background:#f4f6f8;}
-.wrap{max-width:800px;margin:auto;padding:16px;}
-.card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
+body{
+  font-family:Arial;
+  margin:0;
+  background:#f4f6f8;
+}
+
+.wrap{
+  max-width:900px;
+  margin:auto;
+  padding:16px;
+}
+
+.card{
+  background:#fff;
+  padding:14px;
+  border-radius:12px;
+  margin-bottom:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
 .hidden{display:none;}
-.current{font-size:24px;font-weight:bold;}
-button{width:100%;padding:12px;margin-top:10px;}
+
+textarea, select{
+  width:100%;
+  margin-top:8px;
+  padding:10px;
+  box-sizing:border-box;
+}
+
+.current{
+  font-size:24px;
+  font-weight:bold;
+  line-height:1.5;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+}
+
 </style>
 </head>
 
@@ -50,34 +85,46 @@ window.onload=init;
 function init(){
   const s=localStorage.getItem(KEY);
   if(s)config=JSON.parse(s);
-  document.getElementById("setup").classList.remove("hidden");
+  showScreen("setup");
 }
 
-/* 設定保存→完了後に必ずリスト取得 */
+/* 画面切替 */
+function showScreen(name){
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("select").classList.add("hidden");
+  document.getElementById("app").classList.add("hidden");
+
+  document.getElementById(name).classList.remove("hidden");
+}
+
+/* 設定保存 */
 function saveConfig(){
   config.novelId=document.getElementById("novelId").value;
   config.reviewId=document.getElementById("reviewId").value;
   localStorage.setItem(KEY,JSON.stringify(config));
+
   loadList();
 }
 
-/* ★順番固定：取得→描画 */
+/* リスト取得 */
 function loadList(){
   jsonp(API_URL+"?mode=getNovelList&spreadsheetId="+config.novelId)
   .then(list=>{
     const sel=document.getElementById("novelList");
     sel.innerHTML="";
+
     list.forEach(x=>{
       let o=document.createElement("option");
       o.value=x.name;
       o.textContent=x.name;
       sel.appendChild(o);
     });
-    document.getElementById("select").classList.remove("hidden");
+
+    showScreen("select");
   });
 }
 
-/* ★データ取得完了後にだけUI表示 */
+/* 小説開始 */
 function openNovel(){
   const sheet=document.getElementById("novelList").value;
 
@@ -86,17 +133,18 @@ function openNovel(){
     data=r;
     i=0;
 
-    document.getElementById("select").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
+    showScreen("app");
 
-    render(); // ★ここ絶対最後
+    render();
   });
 }
 
+/* 表示 */
 function render(){
   document.getElementById("current").innerText=data[i]?.english||"END";
 }
 
+/* 次 */
 function next(){
   i++;
   render();
@@ -111,6 +159,7 @@ function jsonp(url){
       script.remove();
       res(d);
     };
+
     const script=document.createElement("script");
     script.src=url+"&callback="+cb;
     document.body.appendChild(script);
