@@ -83,74 +83,64 @@ let config={},data=[],i=0;
 window.onload=init;
 
 function init(){
-  const s=localStorage.getItem(KEY);
-  if(s)config=JSON.parse(s);
-  showScreen("setup");
+  const s = localStorage.getItem(KEY);
+  if(s){
+    config = JSON.parse(s);
+    loadList();
+  } else {
+    showScreen("setup");
+  }
 }
 
-/* 画面切替 */
 function showScreen(name){
   document.getElementById("setup").classList.add("hidden");
   document.getElementById("select").classList.add("hidden");
   document.getElementById("app").classList.add("hidden");
-
   document.getElementById(name).classList.remove("hidden");
 }
 
-/* 設定保存 */
 function saveConfig(){
   config.novelId=document.getElementById("novelId").value;
   config.reviewId=document.getElementById("reviewId").value;
   localStorage.setItem(KEY,JSON.stringify(config));
-
   loadList();
 }
 
-/* リスト取得 */
 function loadList(){
   jsonp(API_URL+"?mode=getNovelList&spreadsheetId="+config.novelId)
   .then(list=>{
     const sel=document.getElementById("novelList");
     sel.innerHTML="";
-
     list.forEach(x=>{
       let o=document.createElement("option");
       o.value=x.name;
       o.textContent=x.name;
       sel.appendChild(o);
     });
-
     showScreen("select");
   });
 }
 
-/* 小説開始 */
 function openNovel(){
   const sheet=document.getElementById("novelList").value;
-
   jsonp(API_URL+"?mode=loadNovel&spreadsheetId="+config.novelId+"&sheetName="+sheet)
   .then(r=>{
     data=r;
     i=0;
-
     showScreen("app");
-
     render();
   });
 }
 
-/* 表示 */
 function render(){
   document.getElementById("current").innerText=data[i]?.english||"END";
 }
 
-/* 次 */
 function next(){
   i++;
   render();
 }
 
-/* JSONP */
 function jsonp(url){
   return new Promise(res=>{
     const cb="cb"+Math.random().toString(36).slice(2);
@@ -159,7 +149,6 @@ function jsonp(url){
       script.remove();
       res(d);
     };
-
     const script=document.createElement("script");
     script.src=url+"&callback="+cb;
     document.body.appendChild(script);
