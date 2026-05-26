@@ -26,9 +26,7 @@ body{
   box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
-.hidden{
-  display:none;
-}
+.hidden{display:none;}
 
 .label{
   font-size:12px;
@@ -58,9 +56,7 @@ select{
   box-sizing:border-box;
 }
 
-select{
-  height:auto;
-}
+select{height:auto;}
 
 button{
   width:100%;
@@ -71,20 +67,9 @@ button{
   cursor:pointer;
 }
 
-.primary{
-  background:#4CAF50;
-  color:#fff;
-}
-
-.nextBtn{
-  background:#2196F3;
-  color:#fff;
-}
-
-.changeBtn{
-  background:#666;
-  color:#fff;
-}
+.primary{background:#4CAF50;color:#fff;}
+.nextBtn{background:#2196F3;color:#fff;}
+.changeBtn{background:#666;color:#fff;}
 
 @media (min-width:768px){
   .wrap{max-width:700px;}
@@ -144,10 +129,17 @@ button{
     <div id="next" class="context"></div>
   </div>
 
+  <!-- INPUT（修正版順序） -->
   <div class="card">
 
-    <textarea id="answer" placeholder="answer"></textarea>
     <textarea id="memo" placeholder="memo"></textarea>
+
+    <textarea id="answer" placeholder="answer"></textarea>
+
+    <div class="card">
+      <div class="label">CorrectJP</div>
+      <div id="correctJP" class="context"></div>
+    </div>
 
     <button onclick="prev()">PREV</button>
 
@@ -176,7 +168,6 @@ let config = {};
 let data = [];
 let i = 0;
 
-/* INIT */
 window.addEventListener("load", init);
 
 async function init(){
@@ -189,18 +180,15 @@ async function init(){
   }
 
   config = JSON.parse(saved);
-
   await loadNovelList();
 }
 
-/* SHOW */
 function showSetup(){
   document.getElementById("setup").classList.remove("hidden");
   document.getElementById("select").classList.add("hidden");
   document.getElementById("app").classList.add("hidden");
 }
 
-/* SAVE CONFIG */
 async function saveConfig(){
 
   config.novelId = document.getElementById("novelId").value.trim();
@@ -211,14 +199,12 @@ async function saveConfig(){
   await loadNovelList();
 }
 
-/* CHANGE */
 function changeConfig(){
   localStorage.removeItem(STORAGE_KEY);
   config = {};
   showSetup();
 }
 
-/* LOAD LIST */
 async function loadNovelList(){
 
   const list = await jsonp(
@@ -239,7 +225,6 @@ async function loadNovelList(){
   document.getElementById("select").classList.remove("hidden");
 }
 
-/* OPEN */
 async function openNovel(){
 
   const sheet = document.getElementById("novelList").value;
@@ -258,7 +243,6 @@ async function openNovel(){
   render();
 }
 
-/* SAVE（内部で使う） */
 async function save(){
 
   const payload = {
@@ -282,18 +266,14 @@ async function save(){
   );
 }
 
-/* CHECK（新仕様） */
 async function check(){
 
   await save();
 
-  const jp = data[i]?.correctJP || "";
-
-  document.getElementById("current").innerText =
-    data[i]?.english + "\n\n" + jp;
+  document.getElementById("correctJP").innerText =
+    data[i]?.correctJP || "";
 }
 
-/* NAV */
 function next(){
   if(i < data.length - 1){
     i++;
@@ -308,14 +288,14 @@ function prev(){
   }
 }
 
-/* RENDER */
 function render(){
   document.getElementById("prev").innerText = data[i-1]?.english || "";
   document.getElementById("current").innerText = data[i]?.english || "END";
   document.getElementById("next").innerText = data[i+1]?.english || "";
+
+  document.getElementById("correctJP").innerText = "";
 }
 
-/* JSONP */
 function jsonp(url){
 
   return new Promise((resolve,reject)=>{
@@ -330,9 +310,7 @@ function jsonp(url){
 
     const s = document.createElement("script");
     s.src = url + "&callback=" + cb;
-
     s.onerror = reject;
-
     document.body.appendChild(s);
   });
 }
