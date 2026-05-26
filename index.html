@@ -7,41 +7,31 @@
 <script src="https://accounts.google.com/gsi/client"></script>
 
 <style>
-body{
-  font-family:Arial;
-  margin:0;
-  background:#f4f6f8;
-}
-
-.wrap{
-  max-width:900px;
-  margin:auto;
-  padding:16px;
-}
+body{font-family:Arial;margin:0;background:#f4f6f8;}
+.wrap{max-width:800px;margin:auto;padding:16px;}
 
 .card{
   background:#fff;
   padding:14px;
   border-radius:12px;
   margin-bottom:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
-.status{
-  font-size:12px;
-  color:#888;
-  margin-bottom:6px;
-}
+.hidden{display:none;}
+
+.label{font-size:12px;color:#888;margin-bottom:6px;}
 
 .current{
-  font-size:22px;
+  font-size:24px;
   font-weight:bold;
+  line-height:1.5;
 }
 
-.prev,.nextText{
+.context{
+  font-size:14px;
   color:#666;
   white-space:pre-wrap;
-  font-size:14px;
 }
 
 textarea{
@@ -49,25 +39,27 @@ textarea{
   height:70px;
   margin-top:8px;
   padding:10px;
+  font-size:14px;
+  box-sizing:border-box;
 }
 
 button{
-  padding:10px 14px;
+  width:100%;
+  padding:12px;
+  margin-top:10px;
   border:none;
   border-radius:8px;
   cursor:pointer;
-  margin-top:10px;
 }
 
 .primary{background:#4CAF50;color:#fff}
 .nextBtn{background:#2196F3;color:#fff}
 
 @media (min-width:768px){
+  .wrap{max-width:700px}
   .current{font-size:28px}
   textarea{height:90px}
 }
-
-.hidden{display:none}
 </style>
 </head>
 
@@ -77,41 +69,54 @@ button{
 
 <!-- LOGIN -->
 <div class="card">
+  <div class="label">Login</div>
   <div id="loginBtn"></div>
 </div>
 
 <!-- SETUP -->
 <div id="setup" class="card hidden">
-  <div class="status">初回設定</div>
+  <div class="label">初回設定</div>
   <textarea id="novelId" placeholder="NovelLibrary ID"></textarea>
   <textarea id="reviewId" placeholder="ReviewDB ID"></textarea>
   <button class="primary" onclick="saveConfig()">START</button>
 </div>
 
+<!-- SELECT -->
+<div id="select" class="card hidden">
+  <div class="label">Novel Select</div>
+  <select id="novelList"></select>
+  <button class="primary" onclick="openNovel()">OPEN</button>
+</div>
+
 <!-- APP -->
 <div id="app" class="hidden">
 
+  <!-- Prev -->
   <div class="card">
-    <div class="status">Prev</div>
-    <div id="prev" class="prev"></div>
+    <div class="label">Prev</div>
+    <div id="prev" class="context"></div>
   </div>
 
+  <!-- Current -->
   <div class="card">
-    <div class="status">Current</div>
+    <div class="label">Current</div>
     <div id="current" class="current"></div>
   </div>
 
+  <!-- Next -->
   <div class="card">
-    <div class="status">Next</div>
-    <div id="next" class="nextText"></div>
+    <div class="label">Next</div>
+    <div id="next" class="context"></div>
   </div>
 
+  <!-- Input -->
   <div class="card">
-    <textarea id="answer"></textarea>
-    <textarea id="memo"></textarea>
+    <textarea id="answer" placeholder="answer"></textarea>
+    <textarea id="memo" placeholder="memo"></textarea>
 
     <button class="primary" onclick="save()">SAVE</button>
     <button class="nextBtn" onclick="next()">NEXT</button>
+    <button onclick="prev()">PREV</button>
   </div>
 
 </div>
@@ -127,11 +132,13 @@ let config={};
 let data=[];
 let i=0;
 
-/* LOGIN */
-function initLogin(){
+/* =========================
+   LOGIN INIT
+========================= */
+function init(){
 
   if(!window.google || !google.accounts){
-    setTimeout(initLogin,50);
+    setTimeout(init,50);
     return;
   }
 
@@ -146,111 +153,140 @@ function initLogin(){
   );
 }
 
-window.addEventListener("load",initLogin);
+window.addEventListener("load",init);
 
-/* LOGIN HANDLER */
+/* =========================
+   LOGIN
+========================= */
 function handleLogin(res){
 
-  const p=JSON.parse(atob(res.credential.split('.')[1]));
-  userId=p.sub||p.email;
+  const p = JSON.parse(atob(res.credential.split('.')[1]));
+  userId = p.sub || p.email;
 
   document.getElementById("setup").classList.remove("hidden");
 }
 
-/* SAVE CONFIG */
+/* =========================
+   CONFIG → LIST
+========================= */
 async function saveConfig(){
 
-  config.novelId=document.getElementById("novelId").value.trim();
-  config.reviewId=document.getElementById("reviewId").value.trim();
+  config.novelId = document.getElementById("novelId").value.trim();
+  config.reviewId = document.getElementById("reviewId").value.trim();
 
-  const list=await jsonp(
+  const list = await jsonp(
     `${API_URL}?mode=getNovelList&spreadsheetId=${config.novelId}`
   );
 
-  // 今回はUI変更なしなのでそのまま最初のシートを使う
-  const sheet=list[0]?.name;
+  const sel = document.getElementById("novelList");
+  sel.innerHTML = "";
 
-  loadNovel(sheet);
+  list.forEach(n=>{
+    const o = document.createElement("option");
+    o.value = n.name;
+    o.textContent = n.name;
+    sel.appendChild(o);
+  });
+
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("select").classList.remove("hidden");
 }
 
-/* LOAD NOVEL */
-async function loadNovel(sheet){
+/* =========================
+   OPEN NOVEL
+========================= */
+async function openNovel(){
 
-  data=await jsonp(
+  const sheet = document.getElementById("novelList").value;
+
+  data = await jsonp(
     `${API_URL}?mode=loadNovel`
     +`&spreadsheetId=${config.novelId}`
     +`&sheetName=${sheet}`
   );
 
-  i=0;
+  i = 0;
 
-  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("select").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
 
   render();
 }
 
-/* RENDER（完全維持） */
-function render(){
-
-  document.getElementById("current").innerText=data[i]?.english||"END";
-
-  document.getElementById("prev").innerText=
-    (data[i-1]?.english||"") + "\n" +
-    (data[i-2]?.english||"");
-
-  document.getElementById("next").innerText=
-    (data[i+1]?.english||"") + "\n" +
-    (data[i+2]?.english||"");
-}
-
-/* SAVE */
+/* =========================
+   SAVE
+========================= */
 async function save(){
 
-  const d=data[i];
+  const payload = {
+    userId,
+    novelId: config.novelId,
+    sentenceId: i,
+    chapter: data[i]?.chapter,
+    english: data[i]?.english,
+    answer: document.getElementById("answer").value,
+    memo: document.getElementById("memo").value,
+    time: new Date().toISOString(),
+    currentIndex: i,
+    novelSpreadsheetId: config.novelId,
+    reviewSpreadsheetId: config.reviewId
+  };
 
   await jsonp(
     `${API_URL}?mode=save`
     +`&reviewSpreadsheetId=${config.reviewId}`
-    +`&data=${encodeURIComponent(JSON.stringify({
-      userId,
-      novelId:config.novelId,
-      sentenceId:i,
-      chapter:d.chapter,
-      english:d.english,
-      answer:answer.value,
-      memo:memo.value,
-      time:new Date().toISOString(),
-      currentIndex:i,
-      novelSpreadsheetId:config.novelId,
-      reviewSpreadsheetId:config.reviewId
-    }))}`
+    +`&data=${encodeURIComponent(JSON.stringify(payload))}`
   );
 }
 
-/* NEXT */
+/* =========================
+   NAV
+========================= */
 function next(){
-  if(i<data.length-1){
+  if(i < data.length - 1){
     i++;
     render();
   }
 }
 
-/* JSONP */
+function prev(){
+  if(i > 0){
+    i--;
+    render();
+  }
+}
+
+/* =========================
+   RENDER (3レーンUI復活版)
+========================= */
+function render(){
+
+  const prevText = data[i-1]?.english || "";
+  const currText = data[i]?.english || "";
+  const nextText = data[i+1]?.english || "";
+
+  document.getElementById("prev").innerText = prevText;
+  document.getElementById("current").innerText = currText || "END";
+  document.getElementById("next").innerText = nextText;
+}
+
+/* =========================
+   JSONP
+========================= */
 function jsonp(url){
 
   return new Promise(res=>{
 
-    const cb="cb_"+Math.random().toString(36).slice(2);
+    const cb = "cb_" + Math.random().toString(36).slice(2);
 
-    window[cb]=r=>{
+    window[cb] = r=>{
       delete window[cb];
       document.body.removeChild(s);
       res(r);
     };
 
-    const s=document.createElement("script");
-    s.src=url+"&callback="+cb;
+    const s = document.createElement("script");
+    s.src = url + "&callback=" + cb;
     document.body.appendChild(s);
   });
 }
