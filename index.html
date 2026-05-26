@@ -158,7 +158,7 @@ function init(){
   }
 }
 
-/* ===== 画面制御（①構造） ===== */
+/* ===== 画面制御（①UI構造） ===== */
 function showScreen(name){
   document.getElementById("setup").classList.add("hidden");
   document.getElementById("select").classList.add("hidden");
@@ -199,7 +199,7 @@ function loadList(){
   });
 }
 
-/* ===== 開始（②ロジック） ===== */
+/* ===== 小説開始（②ロジック） ===== */
 function openNovel(){
   const sheet = document.getElementById("novelList").value;
 
@@ -212,17 +212,29 @@ function openNovel(){
   });
 }
 
-/* ===== 表示（①拡張UI対応） ===== */
+/* ===== ★ここ重要：2文Prev/Next仕様保持 ===== */
 function render(){
-  document.getElementById("prev").innerText = data[i-1]?.english || "";
-  document.getElementById("current").innerText = data[i]?.english || "END";
-  document.getElementById("next").innerText = data[i+1]?.english || "";
+
+  const prev2 = data[i-2]?.english || "";
+  const prev1 = data[i-1]?.english || "";
+  const next1 = data[i+1]?.english || "";
+  const next2 = data[i+2]?.english || "";
+
+  document.getElementById("prev").innerText =
+    [prev2, prev1].filter(Boolean).join("\n");
+
+  const currentText = data[i]?.english || "END";
+  document.getElementById("current").innerText = currentText;
+
+  document.getElementById("next").innerText =
+    [next1, next2].filter(Boolean).join("\n");
 
   document.getElementById("correctJP").innerText = "";
 }
 
-/* ===== 保存（①＋②統合） ===== */
+/* ===== 保存（②ロジック + ①拡張） ===== */
 function save(){
+
   const payload = {
     userId:"local_user",
     novelId:config.novelId,
