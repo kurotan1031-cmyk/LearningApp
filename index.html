@@ -5,46 +5,12 @@
 <title>Learning App</title>
 
 <style>
-body{
-  font-family:Arial;
-  margin:0;
-  background:#f4f6f8;
-}
-
-.wrap{
-  max-width:900px;
-  margin:auto;
-  padding:16px;
-}
-
-.card{
-  background:#fff;
-  padding:14px;
-  border-radius:12px;
-  margin-bottom:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-}
-
+body{font-family:Arial;margin:0;background:#f4f6f8;}
+.wrap{max-width:800px;margin:auto;padding:16px;}
+.card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
 .hidden{display:none;}
-
-textarea, select{
-  width:100%;
-  margin-top:8px;
-  padding:10px;
-  box-sizing:border-box;
-}
-
-.current{
-  font-size:24px;
-  font-weight:bold;
-  line-height:1.5;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-}
+.current{font-size:24px;font-weight:bold;}
+button{width:100%;padding:12px;margin-top:10px;}
 </style>
 </head>
 
@@ -81,7 +47,19 @@ let config={},data=[],i=0;
 
 window.onload=init;
 
-/* ★夕方版の画面制御（戻す） */
+/* ★ここだけ修正済み */
+function init(){
+  const s = localStorage.getItem(KEY);
+
+  if(s){
+    config = JSON.parse(s);
+    loadList();   // 保存済みなら復帰
+  } else {
+    showScreen("setup"); // 未保存だけ入力
+  }
+}
+
+/* 画面制御 */
 function showScreen(name){
   document.getElementById("setup").classList.add("hidden");
   document.getElementById("select").classList.add("hidden");
@@ -89,13 +67,7 @@ function showScreen(name){
   document.getElementById(name).classList.remove("hidden");
 }
 
-/* ★ベースロジック（変更なし） */
-function init(){
-  const s=localStorage.getItem(KEY);
-  if(s)config=JSON.parse(s);
-  showScreen("setup");
-}
-
+/* 設定保存 */
 function saveConfig(){
   config.novelId=document.getElementById("novelId").value;
   config.reviewId=document.getElementById("reviewId").value;
@@ -103,6 +75,7 @@ function saveConfig(){
   loadList();
 }
 
+/* 小説リスト取得 */
 function loadList(){
   jsonp(API_URL+"?mode=getNovelList&spreadsheetId="+config.novelId)
   .then(list=>{
@@ -118,6 +91,7 @@ function loadList(){
   });
 }
 
+/* 小説開始 */
 function openNovel(){
   const sheet=document.getElementById("novelList").value;
 
@@ -130,15 +104,18 @@ function openNovel(){
   });
 }
 
+/* 表示 */
 function render(){
   document.getElementById("current").innerText=data[i]?.english||"END";
 }
 
+/* 次へ */
 function next(){
   i++;
   render();
 }
 
+/* JSONP */
 function jsonp(url){
   return new Promise(res=>{
     const cb="cb"+Math.random().toString(36).slice(2);
