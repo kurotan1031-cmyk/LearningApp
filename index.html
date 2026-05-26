@@ -215,19 +215,16 @@ function openNovel(){
 /* ===== ★ここ重要：2文Prev/Next仕様保持 ===== */
 function render(){
 
-  const prev2 = data[i-2]?.english || "";
-  const prev1 = data[i-1]?.english || "";
-  const next1 = data[i+1]?.english || "";
-  const next2 = data[i+2]?.english || "";
-
   document.getElementById("prev").innerText =
-    [prev2, prev1].filter(Boolean).join("\n");
+    (data[i-2]?.english || "") + "\n" +
+    (data[i-1]?.english || "");
 
-  const currentText = data[i]?.english || "END";
-  document.getElementById("current").innerText = currentText;
+  document.getElementById("current").innerText =
+    data[i]?.english || "END";
 
   document.getElementById("next").innerText =
-    [next1, next2].filter(Boolean).join("\n");
+    (data[i+1]?.english || "") + "\n" +
+    (data[i+2]?.english || "");
 
   document.getElementById("correctJP").innerText = "";
 }
