@@ -215,19 +215,24 @@ function openNovel(){
 /* ===== ★ここ重要：2文Prev/Next仕様保持 ===== */
 function render(){
 
+  const prev2 = data[i-2]?.english || "";
+  const prev1 = data[i-1]?.english || "";
+  const next1 = data[i+1]?.english || "";
+  const next2 = data[i+2]?.english || "";
+
   document.getElementById("prev").innerText =
-    (data[i-2]?.english || "") + "\n" +
-    (data[i-1]?.english || "");
+    [prev2, prev1].filter(Boolean).join("\n");
 
   document.getElementById("current").innerText =
     data[i]?.english || "END";
 
   document.getElementById("next").innerText =
-    (data[i+1]?.english || "") + "\n" +
-    (data[i+2]?.english || "");
+    [next1, next2].filter(Boolean).join("\n");
 
   document.getElementById("correctJP").innerText = "";
-speak(currentText);
+
+  // ★ここに追加
+  speak(data[i]?.english);
 }
 
 /* ===== 保存（②ロジック + ①拡張） ===== */
@@ -289,19 +294,47 @@ function speak(text){
 /* ===== JSONP ===== */
 function jsonp(url){
   return new Promise(res=>{
-    const cb = "cb_" + Math.random().toString(36).slice(2);
+    const cb="cb"+Math.random().toString(36).slice(2);
 
-    window[cb] = d=>{
+    window[cb]=d=>{
       delete window[cb];
       script.remove();
       res(d);
     };
 
-    const script = document.createElement("script");
-    script.src = url + "&callback=" + cb;
+    const script=document.createElement("script");
+    script.src=url+"&callback="+cb;
     document.body.appendChild(script);
   });
 }
+
+/* =========================
+   🔊 音声機能（ここから追加）
+========================= */
+
+let speechOn = true;
+
+function toggleSpeech(){
+  speechOn = !speechOn;
+}
+
+function speak(text){
+  if(!speechOn) return;
+  if(!text) return;
+
+  speechSynthesis.cancel();
+
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 1;
+
+  speechSynthesis.speak(u);
+}
+
+
+  
+
+
 
 </script>
 
