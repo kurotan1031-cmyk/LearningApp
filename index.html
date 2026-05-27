@@ -109,6 +109,14 @@ button{
       SOUND ON
     </button>
 
+    <select id="speedSelect" onchange="changeSpeed()">
+      <option value="0.6">0.6x</option>
+      <option value="0.8">0.8x</option>
+      <option value="1" selected>1.0x</option>
+      <option value="1.2">1.2x</option>
+      <option value="1.5">1.5x</option>
+    </select>
+
     <div id="current" class="current"></div>
   </div>
 
@@ -150,6 +158,7 @@ let data = [];
 let i = 0;
 
 let speechEnabled = true;
+let speechRate = 1;
 
 window.onload = init;
 
@@ -299,7 +308,7 @@ function speak(text){
   const uttr = new SpeechSynthesisUtterance(text);
 
   uttr.lang = "en-US";
-  uttr.rate = 1;
+  uttr.rate = speechRate;
 
   speechSynthesis.speak(uttr);
 }
@@ -322,6 +331,20 @@ function toggleSpeech(){
 
     btn.innerText = "SOUND OFF";
     speechSynthesis.cancel();
+  }
+}
+
+/* ===== SPEED ===== */
+
+function changeSpeed(){
+
+  speechRate = Number(
+    document.getElementById("speedSelect").value
+  );
+
+  if(speechEnabled){
+    const currentText = data[i]?.english || "";
+    speak(currentText);
   }
 }
 
