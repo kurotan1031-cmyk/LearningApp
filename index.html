@@ -227,6 +227,7 @@ function render(){
     (data[i+2]?.english || "");
 
   document.getElementById("correctJP").innerText = "";
+speak(currentText);
 }
 
 /* ===== 保存（②ロジック + ①拡張） ===== */
@@ -274,6 +275,17 @@ function prev(){
   }
 }
 
+function speak(text){
+  if(!text) return;
+
+  speechSynthesis.cancel();
+
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 1;
+
+  speechSynthesis.speak(u);
+}
 /* ===== JSONP ===== */
 function jsonp(url){
   return new Promise(res=>{
