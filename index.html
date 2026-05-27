@@ -104,6 +104,11 @@ button{
 
   <div class="card">
     <div class="label">Current</div>
+
+    <button id="speechBtn" onclick="toggleSpeech()">
+      SOUND ON
+    </button>
+
     <div id="current" class="current"></div>
   </div>
 
@@ -143,6 +148,8 @@ const KEY = "cfg";
 let config = {};
 let data = [];
 let i = 0;
+
+let speechEnabled = true;
 
 window.onload = init;
 
@@ -223,16 +230,15 @@ function render(){
   document.getElementById("prev").innerText =
     [prev2, prev1].filter(Boolean).join("\n");
 
-  document.getElementById("current").innerText =
-    data[i]?.english || "END";
+  const currentText = data[i]?.english || "END";
+  document.getElementById("current").innerText = currentText;
 
   document.getElementById("next").innerText =
     [next1, next2].filter(Boolean).join("\n");
 
   document.getElementById("correctJP").innerText = "";
 
-  // ★ここに追加
-  speak(data[i]?.english);
+  speak(currentText);
 }
 
 /* ===== 保存（②ロジック + ①拡張） ===== */
@@ -280,61 +286,61 @@ function prev(){
   }
 }
 
+/* ===== 音声読み上げ ===== */
+
 function speak(text){
-  if(!text) return;
+
+  if(!speechEnabled) return;
+
+  if(!text || text === "END") return;
 
   speechSynthesis.cancel();
 
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  u.rate = 1;
+  const uttr = new SpeechSynthesisUtterance(text);
 
-  speechSynthesis.speak(u);
+  uttr.lang = "en-US";
+  uttr.rate = 1;
+
+  speechSynthesis.speak(uttr);
 }
+
+/* ===== ON/OFF ===== */
+
+function toggleSpeech(){
+
+  speechEnabled = !speechEnabled;
+
+  const btn = document.getElementById("speechBtn");
+
+  if(speechEnabled){
+    btn.innerText = "SOUND ON";
+
+    const currentText = data[i]?.english || "";
+    speak(currentText);
+
+  } else {
+
+    btn.innerText = "SOUND OFF";
+    speechSynthesis.cancel();
+  }
+}
+
 /* ===== JSONP ===== */
 function jsonp(url){
   return new Promise(res=>{
-    const cb="cb"+Math.random().toString(36).slice(2);
+    const cb = "cb_" + Math.random().toString(36).slice(2);
 
-    window[cb]=d=>{
+    window[cb] = d=>{
       delete window[cb];
       script.remove();
       res(d);
     };
 
-    const script=document.createElement("script");
-    script.src=url+"&callback="+cb;
+    const script = document.createElement("script");
+    script.src = url + "&callback=" + cb;
     document.body.appendChild(script);
   });
 }
-
-/* =========================
-   🔊 音声機能（ここから追加）
-========================= */
-
-let speechOn = true;
-
-function toggleSpeech(){
-  speechOn = !speechOn;
-}
-
-function speak(text){
-  if(!speechOn) return;
-  if(!text) return;
-
-  speechSynthesis.cancel();
-
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  u.rate = 1;
-
-  speechSynthesis.speak(u);
-}
-
-
-  
-
-
 
 </script>
 
