@@ -167,7 +167,9 @@ const KEY = "cfg";
 
 const DB_NAME = "LearningAppDB";
 const DB_VERSION = 1;
+
 const STORE_NAME = "kv";
+const QUEUE_STORE = "saveQueue";
 
 let db;
 
@@ -183,9 +185,7 @@ let speechRate = 1;
 let answers = {};
 let memos = {};
 
-const DB_NAME = "LearningAppDB";
-const DB_VERSION = 1;
-const STORE_NAME = "saveQueue";
+
 
 let db;
   
@@ -204,16 +204,12 @@ function openDB(){
       db = e.target.result;
 
       if(!db.objectStoreNames.contains(STORE_NAME)){
-  db.createObjectStore(STORE_NAME);
-}
+        db.createObjectStore(STORE_NAME);
+      }
 
-if(!db.objectStoreNames.contains(STORE_NAME)){
-  db.createObjectStore(STORE_NAME);
-}
-
-if(!db.objectStoreNames.contains(QUEUE_STORE)){
-  db.createObjectStore(QUEUE_STORE,{autoIncrement:true});
-}
+      if(!db.objectStoreNames.contains(QUEUE_STORE)){
+        db.createObjectStore(QUEUE_STORE,{autoIncrement:true});
+      }
     };
 
     req.onsuccess = e=>{
