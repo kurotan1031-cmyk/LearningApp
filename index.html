@@ -183,6 +183,12 @@ let speechRate = 1;
 let answers = {};
 let memos = {};
 
+const DB_NAME = "LearningAppDB";
+const DB_VERSION = 1;
+const STORE_NAME = "saveQueue";
+
+let db;
+  
 window.onload = init;
 
 /* ===== IndexedDB ===== */
@@ -198,8 +204,16 @@ function openDB(){
       db = e.target.result;
 
       if(!db.objectStoreNames.contains(STORE_NAME)){
-        db.createObjectStore(STORE_NAME);
-      }
+  db.createObjectStore(STORE_NAME);
+}
+
+if(!db.objectStoreNames.contains(STORE_NAME)){
+  db.createObjectStore(STORE_NAME);
+}
+
+if(!db.objectStoreNames.contains(QUEUE_STORE)){
+  db.createObjectStore(QUEUE_STORE,{autoIncrement:true});
+}
     };
 
     req.onsuccess = e=>{
@@ -210,6 +224,51 @@ function openDB(){
     req.onerror = e=>{
       reject(e);
     };
+
+  });
+}
+
+function addQueue(data){
+
+  return new Promise((resolve,reject)=>{
+
+    const tx = db.transaction(QUEUE_STORE,"readwrite");
+    const store = tx.objectStore(QUEUE_STORE);
+
+    const req = store.add(data);
+
+    req.onsuccess = ()=>resolve();
+    req.onerror = e=>reject(e);
+
+  });
+}
+
+function getAllQueue(){
+
+  return new Promise((resolve,reject)=>{
+
+    const tx = db.transaction(QUEUE_STORE,"readonly");
+    const store = tx.objectStore(QUEUE_STORE);
+
+    const req = store.getAll();
+
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = e=>reject(e);
+
+  });
+}
+
+function clearQueue(){
+
+  return new Promise((resolve,reject)=>{
+
+    const tx = db.transaction(QUEUE_STORE,"readwrite");
+    const store = tx.objectStore(QUEUE_STORE);
+
+    const req = store.clear();
+
+    req.onsuccess = ()=>resolve();
+    req.onerror = e=>reject(e);
 
   });
 }
@@ -259,6 +318,7 @@ function idbDelete(key){
   });
 }
 
+  
 /* ===== INIT（②ベース） ===== */
 async function init(){
 
@@ -405,11 +465,7 @@ function save(){
     reviewSpreadsheetId:config.reviewId
   };
 
-  return jsonp(
-    API_URL +
-    "?mode=save&reviewSpreadsheetId=" + config.reviewId +
-    "&data=" + encodeURIComponent(JSON.stringify(payload))
-  );
+  return addQueue(payload);
 }
 
 /* ===== CHECK ===== */
@@ -502,6 +558,27 @@ function changeSpeed(){
   }
 }
 
+/* ===== SYNC ===== */
+
+async function syncReviewDB(){
+
+  const list = await getAllQueue();
+
+  for(const payload of list){
+
+    await jsonp(
+      API_URL +
+      "?mode=save&reviewSpreadsheetId=" + config.reviewId +
+      "&data=" + encodeURIComponent(JSON.stringify(payload))
+    );
+
+  }
+
+  await clearQueue();
+
+  alert("SYNC COMPLETE");
+}  
+  
 /* ===== JSONP ===== */
 function jsonp(url){
   return new Promise(res=>{
