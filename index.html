@@ -384,25 +384,27 @@ function check(){
   save();              
 }              
   
-function next(){              
-  i = Number(i);              
-  answers[i] = document.getElementById("answer").value;              
-  memos[i] = document.getElementById("memo").value;              
+function next(){
+
+  answers[i] = document.getElementById("answer").value;
+  memos[i] = document.getElementById("memo").value;
+
+  if(i < data.length - 1){
+    i++;
+    render();
+  }
+}
   
-  save();              
-  
-  if(i < data.length - 1){ i++; render(); }              
-}              
-  
-function prev(){              
-  i = Number(i);              
-  answers[i] = document.getElementById("answer").value;              
-  memos[i] = document.getElementById("memo").value;              
-  
-  save();              
-  
-  if(i > 0){ i--; render(); }              
-}              
+function prev(){
+
+  answers[i] = document.getElementById("answer").value;
+  memos[i] = document.getElementById("memo").value;
+
+  if(i > 0){
+    i--;
+    render();
+  }
+}
   
 async function syncReviewDB(){              
   const list = await getAllQueue();              
