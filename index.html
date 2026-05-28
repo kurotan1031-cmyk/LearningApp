@@ -391,8 +391,13 @@ function check(){
   
 function next(){
 
+  // 入力保持
   answers[i] = document.getElementById("answer").value;
   memos[i] = document.getElementById("memo").value;
+
+  // ★追加：CHECK表示を必ず消す
+  document.getElementById("correctJP").innerText = "";
+  document.getElementById("note").innerText = "";
 
   if(i < data.length - 1){
     i++;
@@ -402,8 +407,13 @@ function next(){
   
 function prev(){
 
+  // 入力保持
   answers[i] = document.getElementById("answer").value;
   memos[i] = document.getElementById("memo").value;
+
+  // ★追加：CHECK表示を必ず消す
+  document.getElementById("correctJP").innerText = "";
+  document.getElementById("note").innerText = "";
 
   if(i > 0){
     i--;
