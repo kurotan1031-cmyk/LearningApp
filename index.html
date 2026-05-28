@@ -452,20 +452,7 @@ function changeSpeed(){
   if(speechEnabled){ speak(data[i]?.english || ""); }            
 }            
 
-function syncReviewDB(){            
-  const list = getAllQueue();            
-  if(list.length === 0){      
-    alert("NO DATA TO SYNC");      
-    return;      
-  }      
-  for(const payload of list){            
-    jsonp(API_URL + "?mode=save" +            
-      "&reviewSpreadsheetId=" + config.reviewId +            
-      "&data=" + encodeURIComponent(JSON.stringify(payload)));            
-  }            
-  clearQueue();            
-  alert("SYNC COMPLETE");            
-}            
+
 
 </script>            
 </body>            
