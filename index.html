@@ -416,8 +416,10 @@ async function syncReviewDB(){
   for(const payload of list){
     await jsonp(
       API_URL +
-      "?mode=save&reviewSpreadsheetId=" + config.reviewId +
-      "&data=" + encodeURIComponent(JSON.stringify(payload))
+      "?mode=save" +
+      "&reviewSpreadsheetId=" + config.reviewId +
+      "&data=" + encodeURIComponent(JSON.stringify(payload)) +
+      "&callback=cb"
     );
   }
 
