@@ -1,472 +1,476 @@
-<!DOCTYPE html>        
-<html>        
-
-<head>        
-<meta charset="UTF-8">        
-<title>Learning App</title>        
-
-<style>        
-body{        
-  font-family:Arial;        
-  margin:0;        
-  background:#f4f6f8;        
-}        
-
-.wrap{        
-  max-width:800px;        
-  margin:auto;        
-  padding:16px;        
-}        
-
-.card{        
-  background:#fff;        
-  padding:14px;        
-  border-radius:12px;        
-  margin-bottom:12px;        
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);        
-}        
-
-.hidden{display:none;}        
-
-.label{        
-  font-size:12px;        
-  color:#888;        
-  margin-bottom:6px;        
-}        
-
-.current{        
-  font-size:24px;        
-  font-weight:bold;        
-  line-height:1.5;        
-}        
-
-.context{        
-  font-size:14px;        
-  color:#666;        
-  white-space:pre-wrap;        
-}        
-
-textarea{        
-  width:100%;        
-  height:70px;        
-  margin-top:8px;        
-  padding:10px;        
-  font-size:14px;        
-  box-sizing:border-box;        
-}        
-
-select{        
-  width:100%;        
-  margin-top:8px;        
-  padding:10px;        
-  font-size:14px;        
-  box-sizing:border-box;        
-}        
-
-select{height:auto;}        
-
-button{        
-  width:100%;        
-  padding:12px;        
-  margin-top:10px;        
-  border:none;        
-  border-radius:8px;        
-  cursor:pointer;        
-}        
-
-.primary{background:#4CAF50;color:#fff;}        
-.nextBtn{background:#2196F3;color:#fff;}        
-.changeBtn{background:#666;color:#fff;}        
-
-</style>        
-</head>        
-
-<body>        
-
-<div class="wrap">        
-
-<!-- SETUP -->        
-<div id="setup" class="card hidden">        
-  <div class="label">初回設定</div>        
-  <textarea id="novelId" placeholder="Novel ID"></textarea>        
-  <textarea id="reviewId" placeholder="Review ID"></textarea>        
-  <button class="primary" onclick="saveConfig()">START</button>        
-</div>        
-
-<!-- SELECT -->        
-<div id="select" class="card hidden">        
-  <div class="label">Novel Select</div>        
-  <select id="novelList"></select>        
-  <button class="primary" onclick="openNovel()">OPEN</button>        
-  <button class="changeBtn" onclick="changeConfig()">設定変更</button>        
-</div>        
+<!DOCTYPE html>          
+<html>          
+
+<head>          
+<meta charset="UTF-8">          
+<title>Learning App</title>          
+
+<style>          
+body{          
+  font-family:Arial;          
+  margin:0;          
+  background:#f4f6f8;          
+}          
+
+.wrap{          
+  max-width:800px;          
+  margin:auto;          
+  padding:16px;          
+}          
+
+.card{          
+  background:#fff;          
+  padding:14px;          
+  border-radius:12px;          
+  margin-bottom:12px;          
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);          
+}          
+
+.hidden{display:none;}          
+
+.label{          
+  font-size:12px;          
+  color:#888;          
+  margin-bottom:6px;          
+}          
+
+.current{          
+  font-size:24px;          
+  font-weight:bold;          
+  line-height:1.5;          
+}          
+
+.context{          
+  font-size:14px;          
+  color:#666;          
+  white-space:pre-wrap;          
+}          
+
+textarea{          
+  width:100%;          
+  height:70px;          
+  margin-top:8px;          
+  padding:10px;          
+  font-size:14px;          
+  box-sizing:border-box;          
+}          
+
+select{          
+  width:100%;          
+  margin-top:8px;          
+  padding:10px;          
+  font-size:14px;          
+  box-sizing:border-box;          
+}          
+
+select{height:auto;}          
+
+button{          
+  width:100%;          
+  padding:12px;          
+  margin-top:10px;          
+  border:none;          
+  border-radius:8px;          
+  cursor:pointer;          
+}          
+
+.primary{background:#4CAF50;color:#fff;}          
+.nextBtn{background:#2196F3;color:#fff;}          
+.changeBtn{background:#666;color:#fff;}          
+
+</style>          
+</head>          
+
+<body>          
+
+<div class="wrap">          
+
+<!-- SETUP -->          
+<div id="setup" class="card hidden">          
+  <div class="label">初回設定</div>          
+  <textarea id="novelId" placeholder="Novel ID"></textarea>          
+  <textarea id="reviewId" placeholder="Review ID"></textarea>          
+  <button class="primary" onclick="saveConfig()">START</button>          
+</div>          
+
+<!-- SELECT -->          
+<div id="select" class="card hidden">          
+  <div class="label">Novel Select</div>          
+  <select id="novelList"></select>          
+  <button class="primary" onclick="openNovel()">OPEN</button>          
+  <button class="changeBtn" onclick="changeConfig()">設定変更</button>          
+</div>          
 
-<!-- APP -->        
-<div id="app" class="hidden">        
+<!-- APP -->          
+<div id="app" class="hidden">          
 
-  <div class="card">        
-    <button id="speechBtn" onclick="toggleSpeech()">SOUND ON</button>        
+  <div class="card">          
+    <button id="speechBtn" onclick="toggleSpeech()">SOUND ON</button>          
 
-    <select id="speedSelect" onchange="changeSpeed()">        
-      <option value="0.6">0.6x</option>        
-      <option value="0.8">0.8x</option>        
-      <option value="1" selected>1.0x</option>        
-      <option value="1.2">1.2x</option>        
-      <option value="1.5">1.5x</option>        
-    </select>        
-  </div>        
+    <select id="speedSelect" onchange="changeSpeed()">          
+      <option value="0.6">0.6x</option>          
+      <option value="0.8">0.8x</option>          
+      <option value="1" selected>1.0x</option>          
+      <option value="1.2">1.2x</option>          
+      <option value="1.5">1.5x</option>          
+    </select>          
+  </div>          
 
-  <div class="card">        
-    <div class="label">Prev</div>        
-    <div id="prev" class="context"></div>        
-  </div>        
+  <div class="card">          
+    <div class="label">Prev</div>          
+    <div id="prev" class="context"></div>          
+  </div>          
 
-  <div class="card">        
-    <div class="label">Current</div>        
-    <div id="current" class="current"></div>        
-  </div>        
+  <div class="card">          
+    <div class="label">Current</div>          
+    <div id="current" class="current"></div>          
+  </div>          
 
-  <div class="card">        
-    <div class="label">Next</div>        
-    <div id="next" class="context"></div>        
-  </div>        
+  <div class="card">          
+    <div class="label">Next</div>          
+    <div id="next" class="context"></div>          
+  </div>          
 
-  <div class="card">        
-    <textarea id="memo" placeholder="memo"></textarea>        
-    <textarea id="answer" placeholder="answer"></textarea>        
+  <div class="card">          
+    <textarea id="memo" placeholder="memo"></textarea>          
+    <textarea id="answer" placeholder="answer"></textarea>          
 
-    <div class="card">        
-      <div class="label">CorrectJP</div>        
-      <div id="correctJP" class="context"></div>        
-    </div>        
-
-    <!-- ★追加：Note表示欄 -->  
-    <div class="card">        
-      <div class="label">Note</div>        
-      <div id="note" class="context"></div>        
-    </div>        
-
-    <button onclick="prev()">PREV</button>        
-    <button class="nextBtn" onclick="next()">NEXT</button>        
-    <button class="primary" onclick="check()">CHECK</button>        
-
-    <button class="primary" onclick="syncReviewDB()">SYNC</button>        
-    <button class="changeBtn" onclick="changeConfig()">設定変更</button>        
-  </div>        
-
-</div>        
-</div>        
-
-<script>        
-
-const API_URL =        
-"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";        
-
-const KEY = "cfg";        
-
-const DB_NAME = "LearningAppDB";        
-const DB_VERSION = 1;        
-
-const STORE_NAME = "kv";        
-const QUEUE_STORE = "saveQueue";        
-
-let db;        
-
-let config = {};        
-let data = [];        
-let i = 0;        
-
-let currentSheetName = "";        
-
-let speechEnabled = true;        
-let speechRate = 1;        
-
-let answers = {};        
-let memos = {};        
-
-window.onload = init;        
-
-function openDB(){        
-  return new Promise((resolve,reject)=>{        
-    const req = indexedDB.open(DB_NAME, DB_VERSION);        
-
-    req.onupgradeneeded = e=>{        
-      db = e.target.result;        
-
-      if(!db.objectStoreNames.contains(STORE_NAME)){        
-        db.createObjectStore(STORE_NAME);        
-      }        
-
-      if(!db.objectStoreNames.contains(QUEUE_STORE)){        
-        db.createObjectStore(QUEUE_STORE,{autoIncrement:true});        
-      }        
-    };        
-
-    req.onsuccess = e=>{        
-      db = e.target.result;        
-      resolve();        
-    };        
-
-    req.onerror = e=>reject(e);        
-  });        
-}        
-
-function addQueue(data){        
-  return new Promise((resolve,reject)=>{        
-    const tx = db.transaction(QUEUE_STORE,"readwrite");        
-    const store = tx.objectStore(QUEUE_STORE);        
-    const req = store.add(data);        
-
-    req.onsuccess = ()=>resolve();        
-    req.onerror = e=>reject(e);        
-  });        
-}        
-
-function getAllQueue(){        
-  return new Promise((resolve,reject)=>{        
-    const tx = db.transaction(QUEUE_STORE,"readonly");        
-    const store = tx.objectStore(QUEUE_STORE);        
-    const req = store.getAll();        
-
-    req.onsuccess = ()=>resolve(req.result);        
-    req.onerror = e=>reject(e);        
-  });        
-}        
-
-function clearQueue(){        
-  return new Promise((resolve,reject)=>{        
-    const tx = db.transaction(QUEUE_STORE,"readwrite");        
-    const store = tx.objectStore(QUEUE_STORE);        
-    const req = store.clear();        
-
-    req.onsuccess = ()=>resolve();        
-    req.onerror = e=>reject(e);        
-  });        
-}        
-
-function idbSet(key,value){        
-  return new Promise((resolve,reject)=>{        
-    const tx = db.transaction(STORE_NAME,"readwrite");        
-    const store = tx.objectStore(STORE_NAME);        
-    const req = store.put(value,key);        
-
-    req.onsuccess = ()=>resolve();        
-    req.onerror = e=>reject(e);        
-  });        
-}        
-
-function idbGet(key){        
-  return new Promise((resolve,reject)=>{        
-    const tx = db.transaction(STORE_NAME,"readonly");        
-    const store = tx.objectStore(STORE_NAME);        
-    const req = store.get(key);        
-
-    req.onsuccess = ()=>resolve(req.result);        
-    req.onerror = e=>reject(e);        
-  });        
-}        
-
-function idbDelete(key){        
-  return new Promise((resolve,reject)=>{        
-    const tx = db.transaction(STORE_NAME,"readwrite");        
-    const store = tx.objectStore(STORE_NAME);        
-    const req = store.delete(key);        
-
-    req.onsuccess = ()=>resolve();        
-    req.onerror = e=>reject(e);        
-  });        
-}        
-
-async function init(){        
-  await openDB();        
-
-  const s = await idbGet(KEY);        
-
-  if(s){        
-    config = JSON.parse(s);        
-    loadList();        
-  } else {        
-    showScreen("setup");        
-  }        
-}        
-
-function showScreen(name){        
-  document.getElementById("setup").classList.add("hidden");        
-  document.getElementById("select").classList.add("hidden");        
-  document.getElementById("app").classList.add("hidden");        
-  document.getElementById(name).classList.remove("hidden");        
-}        
-
-async function saveConfig(){        
-  config.novelId = document.getElementById("novelId").value.trim();        
-  config.reviewId = document.getElementById("reviewId").value.trim();        
-
-  await idbSet(KEY, JSON.stringify(config));        
-  loadList();        
-}        
-
-async function changeConfig(){        
-  await idbDelete(KEY);        
-  config = {};        
-  showScreen("setup");        
-}        
-
-function loadList(){        
-  jsonp(API_URL + "?mode=getNovelList&spreadsheetId=" + config.novelId)        
-  .then(list=>{        
-    const sel = document.getElementById("novelList");        
-    sel.innerHTML = "";        
-
-    list.forEach(x=>{        
-      const o = document.createElement("option");        
-      o.value = x.name;        
-      o.textContent = x.name;        
-      sel.appendChild(o);        
-    });        
-
-    showScreen("select");        
-  });        
-}        
-
-function openNovel(){        
-  const sheet = document.getElementById("novelList").value;        
-  currentSheetName = sheet;        
-
-  jsonp(API_URL + "?mode=loadNovel&spreadsheetId=" + config.novelId + "&sheetName=" + sheet)        
-  .then(r=>{        
-    data = r;        
-
-    jsonp(        
-      API_URL +        
-      "?mode=restoreProgress" +        
-      "&reviewSpreadsheetId=" + config.reviewId +        
-      "&userId=local_user" +        
-      "&novelId=" + config.novelId +        
-      "&sheetName=" + encodeURIComponent(sheet)        
-    )        
-    .then(saved=>{        
-      answers = saved.answers || {};        
-      memos = saved.memos || {};        
-      i = Number(saved.currentIndex || 0);        
-
-      showScreen("app");        
-      render();        
-    });        
-  });        
-}        
-
-function render(){        
-  const prev2 = data[i-2]?.english || "";        
-  const prev1 = data[i-1]?.english || "";        
-  const next1 = data[i+1]?.english || "";        
-  const next2 = data[i+2]?.english || "";        
-
-  document.getElementById("prev").innerText =        
-    [prev2, prev1].filter(Boolean).join("\n");        
-
-  document.getElementById("current").innerText = data[i]?.english || "END";        
-
-  document.getElementById("next").innerText =        
-    [next1, next2].filter(Boolean).join("\n");        
-
-  document.getElementById("answer").value = answers[i] || "";        
-  document.getElementById("memo").value = memos[i] || "";        
-
-  document.getElementById("note").innerText = data[i]?.note || "";        
-
-  speak(data[i]?.english || "");        
-}        
-
-function save(){        
-  answers[i] = document.getElementById("answer").value;        
-  memos[i] = document.getElementById("memo").value;        
-
-  const payload = {        
-    userId:"local_user",        
-    novelId:config.novelId,        
-    sheetName:currentSheetName,        
-    sentenceId:i,        
-    chapter:data[i]?.chapter,        
-    english:data[i]?.english,        
-    answer:answers[i],        
-    memo:memos[i],        
-    time:new Date().toISOString(),        
-    currentIndex:i,        
-    novelSpreadsheetId:config.novelId,        
-    reviewSpreadsheetId:config.reviewId        
-  };        
-
-  return addQueue(payload);        
-}        
-
-function check(){        
-  document.getElementById("correctJP").innerText =        
-    data[i]?.correctJP || "";        
-
-  document.getElementById("note").innerText =        
-    data[i]?.note || "";        
-}        
-
-function next(){        
-  i = Number(i);        
-  answers[i] = document.getElementById("answer").value;        
-  memos[i] = document.getElementById("memo").value;        
-  if(i < data.length - 1){ i++; render(); }        
-}        
-
-function prev(){        
-  i = Number(i);        
-  answers[i] = document.getElementById("answer").value;        
-  memos[i] = document.getElementById("memo").value;        
-  if(i > 0){ i--; render(); }        
-}        
-
-async function syncReviewDB(){        
-  const list = await getAllQueue();        
-  for(const payload of list){        
-    await jsonp(        
-      API_URL +        
-      "?mode=save" +        
-      "&reviewSpreadsheetId=" + config.reviewId +        
-      "&data=" + encodeURIComponent(JSON.stringify(payload))        
-    );        
-  }        
-  await clearQueue();        
-  alert("SYNC COMPLETE");        
-}        
-
-function jsonp(url){        
-  return new Promise(res=>{        
-    const cb = "cb_" + Math.random().toString(36).slice(2);        
-    window[cb] = d=>{ delete window[cb]; script.remove(); res(d); };        
-    const script = document.createElement("script");        
-    script.src = url + "&callback=" + cb;        
-    document.body.appendChild(script);        
-  });        
-}        
-
-function speak(text){        
-  if(!speechEnabled) return;        
-  if(!text || text === "END") return;        
-  speechSynthesis.cancel();        
-  const uttr = new SpeechSynthesisUtterance(text);        
-  uttr.lang = "en-US";        
-  uttr.rate = speechRate;        
-  speechSynthesis.speak(uttr);        
-}        
-
-function toggleSpeech(){        
-  speechEnabled = !speechEnabled;        
-  const btn = document.getElementById("speechBtn");        
-  if(speechEnabled){ btn.innerText = "SOUND ON"; speak(data[i]?.english || ""); }        
-  else { btn.innerText = "SOUND OFF"; speechSynthesis.cancel(); }        
-}        
-
-function changeSpeed(){        
-  speechRate = Number(document.getElementById("speedSelect").value);        
-  if(speechEnabled){ speak(data[i]?.english || ""); }        
-}        
-
-</script>        
-</body>        
+    <div class="card">          
+      <div class="label">CorrectJP</div>          
+      <div id="correctJP" class="context"></div>          
+    </div>          
+
+    <!-- ★追加：Note表示欄 -->    
+    <div class="card">          
+      <div class="label">Note</div>          
+      <div id="note" class="context"></div>          
+    </div>          
+
+    <button onclick="prev()">PREV</button>          
+    <button class="nextBtn" onclick="next()">NEXT</button>          
+    <button class="primary" onclick="check()">CHECK</button>          
+
+    <button class="primary" onclick="syncReviewDB()">SYNC</button>          
+    <button class="changeBtn" onclick="changeConfig()">設定変更</button>          
+  </div>          
+
+</div>          
+</div>          
+
+<script>          
+
+const API_URL =          
+"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";          
+
+const KEY = "cfg";          
+
+const DB_NAME = "LearningAppDB";          
+const DB_VERSION = 1;          
+
+const STORE_NAME = "kv";          
+const QUEUE_STORE = "saveQueue";          
+
+let db;          
+
+let config = {};          
+let data = [];          
+let i = 0;          
+
+let currentSheetName = "";          
+
+let speechEnabled = true;          
+let speechRate = 1;          
+
+let answers = {};          
+let memos = {};          
+
+window.onload = init;          
+
+function openDB(){          
+  return new Promise((resolve,reject)=>{          
+    const req = indexedDB.open(DB_NAME, DB_VERSION);          
+
+    req.onupgradeneeded = e=>{          
+      db = e.target.result;          
+
+      if(!db.objectStoreNames.contains(STORE_NAME)){          
+        db.createObjectStore(STORE_NAME);          
+      }          
+
+      if(!db.objectStoreNames.contains(QUEUE_STORE)){          
+        db.createObjectStore(QUEUE_STORE,{autoIncrement:true});          
+      }          
+    };          
+
+    req.onsuccess = e=>{          
+      db = e.target.result;          
+      resolve();          
+    };          
+
+    req.onerror = e=>reject(e);          
+  });          
+}          
+
+function addQueue(data){          
+  return new Promise((resolve,reject)=>{          
+    const tx = db.transaction(QUEUE_STORE,"readwrite");          
+    const store = tx.objectStore(QUEUE_STORE);          
+    const req = store.add(data);          
+
+    req.onsuccess = ()=>resolve();          
+    req.onerror = e=>reject(e);          
+  });          
+}          
+
+function getAllQueue(){          
+  return new Promise((resolve,reject)=>{          
+    const tx = db.transaction(QUEUE_STORE,"readonly");          
+    const store = tx.objectStore(QUEUE_STORE);          
+    const req = store.getAll();          
+
+    req.onsuccess = ()=>resolve(req.result);          
+    req.onerror = e=>reject(e);          
+  });          
+}          
+
+function clearQueue(){          
+  return new Promise((resolve,reject)=>{          
+    const tx = db.transaction(QUEUE_STORE,"readwrite");          
+    const store = tx.objectStore(QUEUE_STORE);          
+    const req = store.clear();          
+
+    req.onsuccess = ()=>resolve();          
+    req.onerror = e=>reject(e);          
+  });          
+}          
+
+function idbSet(key,value){          
+  return new Promise((resolve,reject)=>{          
+    const tx = db.transaction(STORE_NAME,"readwrite");          
+    const store = tx.objectStore(STORE_NAME);          
+    const req = store.put(value,key);          
+
+    req.onsuccess = ()=>resolve();          
+    req.onerror = e=>reject(e);          
+  });          
+}          
+
+function idbGet(key){          
+  return new Promise((resolve,reject)=>{          
+    const tx = db.transaction(STORE_NAME,"readonly");          
+    const store = tx.objectStore(STORE_NAME);          
+    const req = store.get(key);          
+
+    req.onsuccess = ()=>resolve(req.result);          
+    req.onerror = e=>reject(e);          
+  });          
+}          
+
+function idbDelete(key){          
+  return new Promise((resolve,reject)=>{          
+    const tx = db.transaction(STORE_NAME,"readwrite");          
+    const store = tx.objectStore(STORE_NAME);          
+    const req = store.delete(key);          
+
+    req.onsuccess = ()=>resolve();          
+    req.onerror = e=>reject(e);          
+  });          
+}          
+
+async function init(){          
+  await openDB();          
+
+  const s = await idbGet(KEY);          
+
+  if(s){          
+    config = JSON.parse(s);          
+    loadList();          
+  } else {          
+    showScreen("setup");          
+  }          
+}          
+
+function showScreen(name){          
+  document.getElementById("setup").classList.add("hidden");          
+  document.getElementById("select").classList.add("hidden");          
+  document.getElementById("app").classList.add("hidden");          
+  document.getElementById(name).classList.remove("hidden");          
+}          
+
+async function saveConfig(){          
+  config.novelId = document.getElementById("novelId").value.trim();          
+  config.reviewId = document.getElementById("reviewId").value.trim();          
+
+  await idbSet(KEY, JSON.stringify(config));          
+  loadList();          
+}          
+
+async function changeConfig(){          
+  await idbDelete(KEY);          
+  config = {};          
+  showScreen("setup");          
+}          
+
+function loadList(){          
+  jsonp(API_URL + "?mode=getNovelList&spreadsheetId=" + config.novelId)          
+  .then(list=>{          
+    const sel = document.getElementById("novelList");          
+    sel.innerHTML = "";          
+
+    list.forEach(x=>{          
+      const o = document.createElement("option");          
+      o.value = x.name;          
+      o.textContent = x.name;          
+      sel.appendChild(o);          
+    });          
+
+    showScreen("select");          
+  });          
+}          
+
+function openNovel(){          
+  const sheet = document.getElementById("novelList").value;          
+  currentSheetName = sheet;          
+
+  jsonp(API_URL + "?mode=loadNovel&spreadsheetId=" + config.novelId + "&sheetName=" + sheet)          
+  .then(r=>{          
+    data = r;          
+
+    jsonp(          
+      API_URL +          
+      "?mode=restoreProgress" +          
+      "&reviewSpreadsheetId=" + config.reviewId +          
+      "&userId=local_user" +          
+      "&novelId=" + config.novelId +          
+      "&sheetName=" + encodeURIComponent(sheet)          
+    )          
+    .then(saved=>{          
+      answers = saved.answers || {};          
+      memos = saved.memos || {};          
+      i = Number(saved.currentIndex || 0);          
+
+      showScreen("app");          
+      render();          
+    });          
+  });          
+}          
+
+function render(){          
+  const prev2 = data[i-2]?.english || "";          
+  const prev1 = data[i-1]?.english || "";          
+  const next1 = data[i+1]?.english || "";          
+  const next2 = data[i+2]?.english || "";          
+
+  document.getElementById("prev").innerText =          
+    [prev2, prev1].filter(Boolean).join("\n");          
+
+  document.getElementById("current").innerText = data[i]?.english || "END";          
+
+  document.getElementById("next").innerText =          
+    [next1, next2].filter(Boolean).join("\n");          
+
+  document.getElementById("answer").value = answers[i] || "";          
+  document.getElementById("memo").value = memos[i] || "";          
+
+  document.getElementById("note").innerText = data[i]?.note || "";          
+
+  speak(data[i]?.english || "");          
+}          
+
+function save(){          
+  answers[i] = document.getElementById("answer").value;          
+  memos[i] = document.getElementById("memo").value;          
+
+  const payload = {          
+    userId:"local_user",          
+    novelId:config.novelId,          
+    sheetName:currentSheetName,          
+    sentenceId:i,          
+    chapter:data[i]?.chapter,          
+    english:data[i]?.english,          
+    answer:answers[i],          
+    memo:memos[i],          
+    time:new Date().toISOString(),          
+    currentIndex:i,          
+    novelSpreadsheetId:config.novelId,          
+    reviewSpreadsheetId:config.reviewId          
+  };          
+
+  return addQueue(payload);          
+}          
+
+function check(){          
+  document.getElementById("correctJP").innerText =          
+    data[i]?.correctJP || "";          
+
+  document.getElementById("note").innerText =          
+    data[i]?.note || "";          
+}          
+
+function next(){          
+  i = Number(i);          
+  answers[i] = document.getElementById("answer").value;          
+  memos[i] = document.getElementById("memo").value;          
+  if(i < data.length - 1){ i++; render(); }          
+}          
+
+function prev(){          
+  i = Number(i);          
+  answers[i] = document.getElementById("answer").value;          
+  memos[i] = document.getElementById("memo").value;          
+  if(i > 0){ i--; render(); }          
+}          
+
+async function syncReviewDB(){          
+  const list = await getAllQueue();          
+  if(list.length === 0){    
+    alert("NO DATA TO SYNC");    
+    return;    
+  }    
+  for(const payload of list){          
+    await jsonp(          
+      API_URL +          
+      "?mode=save" +          
+      "&reviewSpreadsheetId=" + config.reviewId +          
+      "&data=" + encodeURIComponent(JSON.stringify(payload))          
+    );          
+  }          
+  await clearQueue();          
+  alert("SYNC COMPLETE");          
+}          
+
+function jsonp(url){          
+  return new Promise(res=>{          
+    const cb = "cb_" + Math.random().toString(36).slice(2);          
+    window[cb] = d=>{ delete window[cb]; script.remove(); res(d); };          
+    const script = document.createElement("script");          
+    script.src = url + "&callback=" + cb;          
+    document.body.appendChild(script);          
+  });          
+}          
+
+function speak(text){          
+  if(!speechEnabled) return;          
+  if(!text || text === "END") return;          
+  speechSynthesis.cancel();          
+  const uttr = new SpeechSynthesisUtterance(text);          
+  uttr.lang = "en-US";          
+  uttr.rate = speechRate;          
+  speechSynthesis.speak(uttr);          
+}          
+
+function toggleSpeech(){          
+  speechEnabled = !speechEnabled;          
+  const btn = document.getElementById("speechBtn");          
+  if(speechEnabled){ btn.innerText = "SOUND ON"; speak(data[i]?.english || ""); }          
+  else { btn.innerText = "SOUND OFF"; speechSynthesis.cancel(); }          
+}          
+
+function changeSpeed(){          
+  speechRate = Number(document.getElementById("speedSelect").value);          
+  if(speechEnabled){ speak(data[i]?.english || ""); }          
+}          
+
+</script>          
+</body>          
 </html>
