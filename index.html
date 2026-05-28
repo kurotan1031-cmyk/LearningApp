@@ -1,12 +1,9 @@
-<!DOCTYPE html>  <html>    <head>    
-<meta charset="UTF-8">    
-<title>Learning App</title>  <style>    body{
-font-family:Arial;
-margin:0;
-background:#f4f6f8;
-}
-
-.wrap{
+<!DOCTYPE html>  <html>    <head>      <meta charset="UTF-8">      
+<title>Learning App</title>  <style>    body{  
+font-family:Arial;  
+margin:0;  
+background:#f4f6f8;  
+}  .wrap{
 max-width:800px;
 margin:auto;
 padding:16px;
@@ -74,47 +71,43 @@ cursor:pointer;
 
 </style>  </head>  <body>  <div class="wrap">  <!-- SETUP -->  <div id="setup" class="card hidden">
 
-  <div class="label">初回設定</div>    
-  <textarea id="novelId" placeholder="Novel ID"></textarea>    
-  <textarea id="reviewId" placeholder="Review ID"></textarea>    
-  <button class="primary" onclick="saveConfig()">START</button>    
-</div>  <!-- SELECT -->  <div id="select" class="card hidden">    
-  <div class="label">Novel Select</div>    
-  <select id="novelList"></select>    
-  <button class="primary" onclick="openNovel()">OPEN</button>    
-  <button class="changeBtn" onclick="changeConfig()">設定変更</button>    
-</div>  <!-- APP -->  <div id="app" class="hidden">    <!-- ① moved -->    <div class="card">  <button id="speechBtn" onclick="toggleSpeech()">    
-  SOUND ON    
-</button>    <select id="speedSelect" onchange="changeSpeed()">    
-  <option value="0.6">0.6x</option>    
-  <option value="0.8">0.8x</option>    
-  <option value="1" selected>1.0x</option>    
-  <option value="1.2">1.2x</option>    
-  <option value="1.5">1.5x</option>    
-</select>    </div>    <div class="card">    
-    <div class="label">Prev</div>    
-    <div id="prev" class="context"></div>    
-  </div>    <div class="card">    
-    <div class="label">Current</div>    
-    <div id="current" class="current"></div>    
-  </div>    <div class="card">    
-    <div class="label">Next</div>    
-    <div id="next" class="context"></div>    
-  </div>    <div class="card">  <textarea id="memo" placeholder="memo"></textarea>    
-<textarea id="answer" placeholder="answer"></textarea>    <div class="card">    
-  <div class="label">CorrectJP</div>    
-  <div id="correctJP" class="context"></div>    
-</div>    <button onclick="prev()">PREV</button>
-<button class="nextBtn" onclick="next()">NEXT</button>
-<button class="primary" onclick="check()">CHECK</button>
-
-　　<button class="primary" onclick="syncReviewDB()">SYNC</button>
+  <div class="label">初回設定</div>      
+  <textarea id="novelId" placeholder="Novel ID"></textarea>      
+  <textarea id="reviewId" placeholder="Review ID"></textarea>      
+  <button class="primary" onclick="saveConfig()">START</button>      
+</div>  <!-- SELECT -->  <div id="select" class="card hidden">      
+  <div class="label">Novel Select</div>      
+  <select id="novelList"></select>      
+  <button class="primary" onclick="openNovel()">OPEN</button>      
+  <button class="changeBtn" onclick="changeConfig()">設定変更</button>      
+</div>  <!-- APP -->  <div id="app" class="hidden">    <!-- ① moved -->    <div class="card">  <button id="speechBtn" onclick="toggleSpeech()">      
+  SOUND ON      
+</button>    <select id="speedSelect" onchange="changeSpeed()">      
+  <option value="0.6">0.6x</option>      
+  <option value="0.8">0.8x</option>      
+  <option value="1" selected>1.0x</option>      
+  <option value="1.2">1.2x</option>      
+  <option value="1.5">1.5x</option>      
+</select>    </div>    <div class="card">      
+    <div class="label">Prev</div>      
+    <div id="prev" class="context"></div>      
+  </div>    <div class="card">      
+    <div class="label">Current</div>      
+    <div id="current" class="current"></div>      
+  </div>    <div class="card">      
+    <div class="label">Next</div>      
+    <div id="next" class="context"></div>      
+  </div>    <div class="card">  <textarea id="memo" placeholder="memo"></textarea>      
+<textarea id="answer" placeholder="answer"></textarea>    <div class="card">      
+  <div class="label">CorrectJP</div>      
+  <div id="correctJP" class="context"></div>      
+</div>    <button onclick="prev()">PREV</button>  
+<button class="nextBtn" onclick="next()">NEXT</button>  
+<button class="primary" onclick="check()">CHECK</button>  　　<button class="primary" onclick="syncReviewDB()">SYNC</button>
 <button class="changeBtn" onclick="changeConfig()">設定変更</button>
 
-  </div>  </div>  </div>  <script>    const API_URL =
-"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
-
-const KEY = "cfg";
+  </div>  </div>  </div>  <script>    const API_URL =  
+"https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";  const KEY = "cfg";
 
 const DB_NAME = "LearningAppDB";
 const DB_VERSION = 1;
@@ -140,47 +133,47 @@ window.onload = init;
 
 /* ===== IndexedDB ===== */
 
-/*（中略：変更なし）*/
+/（中略：変更なし）/
 
 /* ===== CHECK ===== */
-function check(){  
-  save().then(()=>{  
-    const el = document.getElementById("correctJP");
-    el.innerText =
-      (data[i] && data[i].correctJP) ? data[i].correctJP : "";
-  });  
-}  
+function check(){
+save().then(()=>{
+const el = document.getElementById("correctJP");
+el.innerText =
+(data[i] && data[i].correctJP) ? data[i].correctJP : "";
+});
+}
 
 /* ===== NAV ===== */
-function next(){  
+function next(){
 
-answers[i] =  
-document.getElementById("answer").value;  
+answers[i] =
+document.getElementById("answer").value;
 
-memos[i] =  
-document.getElementById("memo").value;  
+memos[i] =
+document.getElementById("memo").value;
 
-if(i < data.length - 1){  
-i++;  
-render();  
-}  
+if(i < data.length - 1){
+i++;
+render();
+}
 
-}  
+}
 
-function prev(){  
+function prev(){
 
-answers[i] =  
-document.getElementById("answer").value;  
+answers[i] =
+document.getElementById("answer").value;
 
-memos[i] =  
-document.getElementById("memo").value;  
+memos[i] =
+document.getElementById("memo").value;
 
-if(i > 0){  
-i--;  
-render();  
-}  
+if(i > 0){
+i--;
+render();
+}
 
-}  
+}
 
 /* ===== 以下省略（変更なし） ===== */
 
