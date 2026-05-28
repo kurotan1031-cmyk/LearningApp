@@ -354,19 +354,18 @@ function save(){
   answers[i] = document.getElementById("answer").value;              
   memos[i] = document.getElementById("memo").value;              
   
-  const payload = {              
-    userId:"local_user",              
-    novelId:config.novelId,              
-    sheetName:currentSheetName,              
-    sentenceId:i,              
-    chapter:data[i]?.chapter,              
-    english:data[i]?.english,              
-    answer:answers[i],              
-    memo:memos[i],              
-    time:new Date().toISOString(),              
-    currentIndex:i,              
-    novelSpreadsheetId:config.novelId,              
-    reviewSpreadsheetId:config.reviewId              
+  const payload = {
+  sessionId: "local_user",
+  novelId: config.novelId,
+  sentenceId: i,
+  chapter: data[i]?.chapter || "",
+  english: data[i]?.english || "",
+  answer: answers[i] || "",
+  memo: memos[i] || "",
+  time: new Date().toISOString(),
+  currentIndex: i,
+  novelSpreadsheetId: config.novelId,
+  reviewSpreadsheetId: config.reviewId             
   };              
   
   return addQueue(payload);              
