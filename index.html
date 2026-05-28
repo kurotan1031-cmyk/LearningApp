@@ -104,13 +104,8 @@ button{
 <!-- APP -->
 <div id="app" class="hidden">
 
+  <!-- ① moved -->
   <div class="card">
-    <div class="label">Prev</div>
-    <div id="prev" class="context"></div>
-  </div>
-
-  <div class="card">
-    <div class="label">Current</div>
 
     <button id="speechBtn" onclick="toggleSpeech()">
       SOUND ON
@@ -124,6 +119,15 @@ button{
       <option value="1.5">1.5x</option>
     </select>
 
+  </div>
+
+  <div class="card">
+    <div class="label">Prev</div>
+    <div id="prev" class="context"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Current</div>
     <div id="current" class="current"></div>
   </div>
 
@@ -159,11 +163,12 @@ const API_URL =
 "https://script.google.com/macros/s/AKfycbwuzUthOtT5W1l4tyGGaeuNbsPnuy7HHwhfRkgW5EY9xd5yB3Rau0eJKyB5-JNEmtzIXw/exec";
 
 const KEY = "cfg";
-const PROGRESS_KEY = "progress";
 
 let config = {};
 let data = [];
 let i = 0;
+
+let currentSheetName = "";
 
 let speechEnabled = true;
 let speechRate = 1;
@@ -204,7 +209,6 @@ function saveConfig(){
 
 function changeConfig(){
   localStorage.removeItem(KEY);
-  localStorage.removeItem(PROGRESS_KEY);
   config = {};
   showScreen("setup");
 }
@@ -229,26 +233,34 @@ function loadList(){
 
 /* ===== 小説開始（②ロジック） ===== */
 function openNovel(){
+
   const sheet = document.getElementById("novelList").value;
+
+  currentSheetName = sheet;
 
   jsonp(API_URL + "?mode=loadNovel&spreadsheetId=" + config.novelId + "&sheetName=" + sheet)
   .then(r=>{
+
     data = r;
 
-    const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+    jsonp(
+      API_URL +
+      "?mode=restoreProgress" +
+      "&reviewSpreadsheetId=" + config.reviewId +
+      "&userId=local_user" +
+      "&novelId=" + config.novelId +
+      "&sheetName=" + encodeURIComponent(sheet)
+    )
+    .then(saved=>{
 
-    if(saved.sheet === sheet){
-      i = saved.index || 0;
       answers = saved.answers || {};
       memos = saved.memos || {};
-    } else {
-      i = 0;
-      answers = {};
-      memos = {};
-    }
+      i = Number(saved.currentIndex || 0);
 
-    showScreen("app");
-    render();
+      showScreen("app");
+      render();
+    });
+
   });
 }
 
@@ -271,6 +283,7 @@ function render(){
 
   document.getElementById("correctJP").innerText = "";
 
+  /* ② sentence別復元 */
   document.getElementById("answer").value =
     answers[i] || "";
 
@@ -283,15 +296,24 @@ function render(){
 /* ===== 保存（②ロジック + ①拡張） ===== */
 function save(){
 
+  answers[i] =
+    document.getElementById("answer").value;
+
+  memos[i] =
+    document.getElementById("memo").value;
+
   const payload = {
     userId:"local_user",
     novelId:config.novelId,
+    sheetName:currentSheetName,
     sentenceId:i,
     chapter:data[i]?.chapter,
     english:data[i]?.english,
-    answer:document.getElementById("answer").value,
-    memo:document.getElementById("memo").value,
+    answer:answers[i],
+    memo:memos[i],
     time:new Date().toISOString(),
+    currentIndex:i,
+    novelSpreadsheetId:config.novelId,
     reviewSpreadsheetId:config.reviewId
   };
 
@@ -319,13 +341,6 @@ function next(){
   memos[i] =
     document.getElementById("memo").value;
 
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify({
-    sheet:document.getElementById("novelList").value,
-    index:i + 1,
-    answers:answers,
-    memos:memos
-  }));
-
   if(i < data.length - 1){
     i++;
     render();
@@ -339,13 +354,6 @@ function prev(){
 
   memos[i] =
     document.getElementById("memo").value;
-
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify({
-    sheet:document.getElementById("novelList").value,
-    index:i - 1,
-    answers:answers,
-    memos:memos
-  }));
 
   if(i > 0){
     i--;
