@@ -330,24 +330,29 @@ function openNovel(){
   });              
 }              
   
-function render(){              
-  const prev2 = data[i-2]?.english || "";              
-  const prev1 = data[i-1]?.english || "";              
-  const next1 = data[i+1]?.english || "";              
-  const next2 = data[i+2]?.english || "";              
-  
-  document.getElementById("prev").innerText =              
-    [prev2, prev1].filter(Boolean).join("\n");              
-  
-  document.getElementById("current").innerText = data[i]?.english || "END";              
-  document.getElementById("next").innerText =              
-    [next1, next2].filter(Boolean).join("\n");              
-  
-  document.getElementById("answer").value = answers[i] || "";              
-  document.getElementById("memo").value = memos[i] || "";              
-  
-  document.getElementById("note").innerText = "";              
-  speak(data[i]?.english || "");              
+function render(){
+
+  // ←これ追加（重要）
+  document.getElementById("correctJP").innerText = "";
+  document.getElementById("note").innerText = "";
+
+  const prev2 = data[i-2]?.english || "";
+  const prev1 = data[i-1]?.english || "";
+  const next1 = data[i+1]?.english || "";
+  const next2 = data[i+2]?.english || "";
+
+  document.getElementById("prev").innerText =
+    [prev2, prev1].filter(Boolean).join("\n");
+
+  document.getElementById("current").innerText = data[i]?.english || "END";
+
+  document.getElementById("next").innerText =
+    [next1, next2].filter(Boolean).join("\n");
+
+  document.getElementById("answer").value = answers[i] || "";
+  document.getElementById("memo").value = memos[i] || "";
+
+  speak(data[i]?.english || "");
 }              
   
 function save(){              
