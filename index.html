@@ -372,7 +372,7 @@ function render(){
   document.getElementById("answer").value = answers[i] || "";          
   document.getElementById("memo").value = memos[i] || "";          
 
-  document.getElementById("note").innerText = data[i]?.note || "";          
+  document.getElementById("note").innerText = "";          
 
   speak(data[i]?.english || "");          
 }          
