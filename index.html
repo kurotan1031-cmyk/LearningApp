@@ -403,6 +403,12 @@ function save(){
   return addQueue(payload);
 }
 
+/* ===== CHECK（変更ここだけ） ===== */
+function check(){
+  document.getElementById("correctJP").innerText =
+    data[i]?.correctJP || "";
+}
+
 /* ===== SYNC ===== */
 async function syncReviewDB(){
   const list = await getAllQueue();
