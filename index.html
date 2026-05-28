@@ -140,7 +140,6 @@ button{
       <div id="correctJP" class="context"></div>          
     </div>          
 
-    <!-- ★追加：Note表示欄 -->    
     <div class="card">          
       <div class="label">Note</div>          
       <div id="note" class="context"></div>          
@@ -171,11 +170,9 @@ const STORE_NAME = "kv";
 const QUEUE_STORE = "saveQueue";          
 
 let db;          
-
 let config = {};          
 let data = [];          
 let i = 0;          
-
 let currentSheetName = "";          
 
 let speechEnabled = true;          
@@ -189,24 +186,19 @@ window.onload = init;
 function openDB(){          
   return new Promise((resolve,reject)=>{          
     const req = indexedDB.open(DB_NAME, DB_VERSION);          
-
     req.onupgradeneeded = e=>{          
       db = e.target.result;          
-
       if(!db.objectStoreNames.contains(STORE_NAME)){          
         db.createObjectStore(STORE_NAME);          
       }          
-
       if(!db.objectStoreNames.contains(QUEUE_STORE)){          
         db.createObjectStore(QUEUE_STORE,{autoIncrement:true});          
       }          
     };          
-
     req.onsuccess = e=>{          
       db = e.target.result;          
       resolve();          
     };          
-
     req.onerror = e=>reject(e);          
   });          
 }          
@@ -216,7 +208,6 @@ function addQueue(data){
     const tx = db.transaction(QUEUE_STORE,"readwrite");          
     const store = tx.objectStore(QUEUE_STORE);          
     const req = store.add(data);          
-
     req.onsuccess = ()=>resolve();          
     req.onerror = e=>reject(e);          
   });          
@@ -227,7 +218,6 @@ function getAllQueue(){
     const tx = db.transaction(QUEUE_STORE,"readonly");          
     const store = tx.objectStore(QUEUE_STORE);          
     const req = store.getAll();          
-
     req.onsuccess = ()=>resolve(req.result);          
     req.onerror = e=>reject(e);          
   });          
@@ -238,7 +228,6 @@ function clearQueue(){
     const tx = db.transaction(QUEUE_STORE,"readwrite");          
     const store = tx.objectStore(QUEUE_STORE);          
     const req = store.clear();          
-
     req.onsuccess = ()=>resolve();          
     req.onerror = e=>reject(e);          
   });          
@@ -249,7 +238,6 @@ function idbSet(key,value){
     const tx = db.transaction(STORE_NAME,"readwrite");          
     const store = tx.objectStore(STORE_NAME);          
     const req = store.put(value,key);          
-
     req.onsuccess = ()=>resolve();          
     req.onerror = e=>reject(e);          
   });          
@@ -260,7 +248,6 @@ function idbGet(key){
     const tx = db.transaction(STORE_NAME,"readonly");          
     const store = tx.objectStore(STORE_NAME);          
     const req = store.get(key);          
-
     req.onsuccess = ()=>resolve(req.result);          
     req.onerror = e=>reject(e);          
   });          
@@ -271,7 +258,6 @@ function idbDelete(key){
     const tx = db.transaction(STORE_NAME,"readwrite");          
     const store = tx.objectStore(STORE_NAME);          
     const req = store.delete(key);          
-
     req.onsuccess = ()=>resolve();          
     req.onerror = e=>reject(e);          
   });          
@@ -279,9 +265,7 @@ function idbDelete(key){
 
 async function init(){          
   await openDB();          
-
   const s = await idbGet(KEY);          
-
   if(s){          
     config = JSON.parse(s);          
     loadList();          
@@ -300,7 +284,6 @@ function showScreen(name){
 async function saveConfig(){          
   config.novelId = document.getElementById("novelId").value.trim();          
   config.reviewId = document.getElementById("reviewId").value.trim();          
-
   await idbSet(KEY, JSON.stringify(config));          
   loadList();          
 }          
@@ -316,14 +299,12 @@ function loadList(){
   .then(list=>{          
     const sel = document.getElementById("novelList");          
     sel.innerHTML = "";          
-
     list.forEach(x=>{          
       const o = document.createElement("option");          
       o.value = x.name;          
       o.textContent = x.name;          
       sel.appendChild(o);          
     });          
-
     showScreen("select");          
   });          
 }          
@@ -331,24 +312,18 @@ function loadList(){
 function openNovel(){          
   const sheet = document.getElementById("novelList").value;          
   currentSheetName = sheet;          
-
   jsonp(API_URL + "?mode=loadNovel&spreadsheetId=" + config.novelId + "&sheetName=" + sheet)          
   .then(r=>{          
     data = r;          
-
-    jsonp(          
-      API_URL +          
-      "?mode=restoreProgress" +          
+    jsonp(API_URL + "?mode=restoreProgress" +          
       "&reviewSpreadsheetId=" + config.reviewId +          
       "&userId=local_user" +          
       "&novelId=" + config.novelId +          
-      "&sheetName=" + encodeURIComponent(sheet)          
-    )          
+      "&sheetName=" + encodeURIComponent(sheet))          
     .then(saved=>{          
       answers = saved.answers || {};          
       memos = saved.memos || {};          
       i = Number(saved.currentIndex || 0);          
-
       showScreen("app");          
       render();          
     });          
@@ -365,7 +340,6 @@ function render(){
     [prev2, prev1].filter(Boolean).join("\n");          
 
   document.getElementById("current").innerText = data[i]?.english || "END";          
-
   document.getElementById("next").innerText =          
     [next1, next2].filter(Boolean).join("\n");          
 
@@ -373,14 +347,12 @@ function render(){
   document.getElementById("memo").value = memos[i] || "";          
 
   document.getElementById("note").innerText = "";          
-
   speak(data[i]?.english || "");          
 }          
 
 function save(){          
   answers[i] = document.getElementById("answer").value;          
   memos[i] = document.getElementById("memo").value;          
-
   const payload = {          
     userId:"local_user",          
     novelId:config.novelId,          
@@ -395,14 +367,12 @@ function save(){
     novelSpreadsheetId:config.novelId,          
     reviewSpreadsheetId:config.reviewId          
   };          
-
   return addQueue(payload);          
 }          
 
 function check(){          
   document.getElementById("correctJP").innerText =          
     data[i]?.correctJP || "";          
-
   document.getElementById("note").innerText =          
     data[i]?.note || "";          
 }          
@@ -428,12 +398,9 @@ async function syncReviewDB(){
     return;    
   }    
   for(const payload of list){          
-    await jsonp(          
-      API_URL +          
-      "?mode=save" +          
+    await jsonp(API_URL + "?mode=save" +          
       "&reviewSpreadsheetId=" + config.reviewId +          
-      "&data=" + encodeURIComponent(JSON.stringify(payload))          
-    );          
+      "&data=" + encodeURIComponent(JSON.stringify(payload)));          
   }          
   await clearQueue();          
   alert("SYNC COMPLETE");          
@@ -469,6 +436,21 @@ function toggleSpeech(){
 function changeSpeed(){          
   speechRate = Number(document.getElementById("speedSelect").value);          
   if(speechEnabled){ speak(data[i]?.english || ""); }          
+}          
+
+function syncReviewDB(){          
+  const list = getAllQueue();          
+  if(list.length === 0){    
+    alert("NO DATA TO SYNC");    
+    return;    
+  }    
+  for(const payload of list){          
+    jsonp(API_URL + "?mode=save" +          
+      "&reviewSpreadsheetId=" + config.reviewId +          
+      "&data=" + encodeURIComponent(JSON.stringify(payload)));          
+  }          
+  clearQueue();          
+  alert("SYNC COMPLETE");          
 }          
 
 </script>          
