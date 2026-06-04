@@ -479,12 +479,13 @@ function wrapWords(text){
 }
 
 function dict(word){
-  const box = document.getElementById("dictPopup");
+
+  let box = document.getElementById("dictPopup");
 
   if(!box){
-    const div = document.createElement("div");
-    div.id = "dictPopup";
-    div.style.cssText = `
+    box = document.createElement("div");
+    box.id = "dictPopup";
+    box.style.cssText = `
       position:fixed;
       bottom:20px;
       left:20px;
@@ -493,25 +494,27 @@ function dict(word){
       border:1px solid #ccc;
       padding:10px;
       z-index:9999;
+      font-size:14px;
     `;
-    document.body.appendChild(div);
+    document.body.appendChild(box);
   }
 
-  const target = document.getElementById("dictPopup");
-  target.style.display = "block";
-  target.innerText = "loading...";
+  box.style.display = "block";
+  box.innerText = "loading...";
 
   fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + word)
     .then(r => r.json())
     .then(d => {
-      target.innerText =
+      box.innerText =
         d[0]?.meanings?.[0]?.definitions?.[0]?.definition
         || "not found";
     })
     .catch(() => {
-      target.innerText = "not found";
+      box.innerText = "not found";
     });
 }
+
+  
   
 </script>              
 </body>              
