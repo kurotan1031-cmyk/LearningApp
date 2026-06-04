@@ -344,7 +344,8 @@ function render(){
   document.getElementById("prev").innerText =
     [prev2, prev1].filter(Boolean).join("\n");
 
-  document.getElementById("current").innerText = data[i]?.english || "END";
+  document.getElementById("current").innerHTML =
+  wrapWords(data[i]?.english || "END");
 
   document.getElementById("next").innerText =
     [next1, next2].filter(Boolean).join("\n");
@@ -468,7 +469,21 @@ function changeSpeed(){
   speechRate = Number(document.getElementById("speedSelect").value);              
   if(speechEnabled){ speak(data[i]?.english || ""); }              
 }              
-  
+
+function wrapWords(text){
+  return text.split(" ").map(w =>
+    `<span onclick="dict(this.innerText)" style="cursor:pointer;">
+      ${w}
+    </span>`
+  ).join(" ");
+}
+
+function dict(word){
+  window.open(
+    "https://translate.google.com/?sl=en&tl=ja&text=" + encodeURIComponent(word),
+    "_blank"
+  );
+}  
   
 </script>              
 </body>              
